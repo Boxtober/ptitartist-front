@@ -1,23 +1,41 @@
 import { HeroSection } from './HeroSection';
 import { Gallery } from './Gallery';
 import { FloatingActionButton } from './FloatingActionButton';
-import { UploadArea } from './UploadArea';
+import { UploadArea, type UploadChild } from './UploadArea';
 import { ArtworkDetailModal } from './ArtworkDetailModal';
 import type { Drawing } from './types';
 import { useState } from 'react';
 
 interface HomePageProps {
   drawings: Drawing[];
-  onUpload: (file: File, childName: string, age: number) => void;
+  children: UploadChild[];
+  onUpload: (file: File, child: UploadChild) => void;
+  canUpload?: boolean;
+  onGuestActionClick?: () => void;
 }
 
-export function HomePage({ drawings, onUpload }: HomePageProps) {
+export function HomePage({
+  drawings,
+  children,
+  onUpload,
+  canUpload = true,
+  onGuestActionClick,
+}: HomePageProps) {
   const [showUpload, setShowUpload] = useState(false);
   const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
 
   return (
     <>
-      <HeroSection onUploadClick={() => setShowUpload(true)} />
+      <HeroSection
+        onPrimaryActionClick={() => {
+          if (canUpload) {
+            setShowUpload(true);
+            return;
+          }
+          onGuestActionClick?.();
+        }}
+        primaryActionLabel={canUpload ? 'Upload a drawing' : 'Se connecter pour publier'}
+      />
       <div
         onClick={(e) => {
           const target = e.target as HTMLElement;
@@ -31,10 +49,10 @@ export function HomePage({ drawings, onUpload }: HomePageProps) {
       >
         <Gallery drawings={drawings} />
       </div>
-      <FloatingActionButton onClick={() => setShowUpload(true)} />
+      {canUpload && <FloatingActionButton onClick={() => setShowUpload(true)} />}
 
-      {showUpload && (
-        <UploadArea onUpload={onUpload} onClose={() => setShowUpload(false)} />
+      {canUpload && showUpload && (
+        <UploadArea children={children} onUpload={onUpload} onClose={() => setShowUpload(false)} />
       )}
 
       {selectedDrawing && (

@@ -1,7 +1,12 @@
 import { motion } from 'motion/react';
 import { Sparkles, Palette, Wand2, Heart } from 'lucide-react';
 
-export function HeroSection({ onUploadClick }: { onUploadClick: () => void }) {
+type HeroSectionProps = {
+  onPrimaryActionClick: () => void;
+  primaryActionLabel: string;
+};
+
+export function HeroSection({ onPrimaryActionClick, primaryActionLabel }: HeroSectionProps) {
   const floatingIcons = [
     { Icon: Palette, color: 'var(--bubblegum-pink)', delay: 0 },
     { Icon: Wand2, color: 'var(--lavender)', delay: 0.2 },
@@ -66,7 +71,7 @@ export function HeroSection({ onUploadClick }: { onUploadClick: () => void }) {
         </motion.p>
 
         <motion.button
-          onClick={onUploadClick}
+          onClick={onPrimaryActionClick}
           className="group px-8 py-4 rounded-full bg-primary hover:bg-primary/90 transition-all inline-flex items-center gap-3 shadow-lg hover:shadow-xl"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -75,7 +80,7 @@ export function HeroSection({ onUploadClick }: { onUploadClick: () => void }) {
           whileTap={{ scale: 0.95 }}
         >
           <Palette className="w-5 h-5" />
-          <span>Upload a drawing</span>
+          <span>{primaryActionLabel}</span>
         </motion.button>
 
         {/* Decorative wave shape */}

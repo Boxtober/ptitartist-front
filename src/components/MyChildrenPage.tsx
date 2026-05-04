@@ -8,73 +8,33 @@ export interface Child {
   name: string;
   age: number;
   birthdate: string;
-  artworkCount: number;
+  artworkCount?: number;
   avatarColor: string;
 }
 
-export function MyChildrenPage() {
-  const [children, setChildren] = useState<Child[]>([
-    {
-      id: '1',
-      name: 'Sophie',
-      age: 6,
-      birthdate: 'March 15, 2020',
-      artworkCount: 12,
-      avatarColor: 'var(--bubblegum-pink)',
-    },
-    {
-      id: '2',
-      name: 'Lucas',
-      age: 5,
-      birthdate: 'July 22, 2021',
-      artworkCount: 8,
-      avatarColor: 'var(--sky-blue)',
-    },
-    {
-      id: '3',
-      name: 'Emma',
-      age: 7,
-      birthdate: 'January 10, 2019',
-      artworkCount: 15,
-      avatarColor: 'var(--lavender)',
-    },
-  ]);
+type MyChildrenPageProps = {
+  children: Child[];
+  onAddChild: (payload: { name: string; birthdate: string }) => Promise<void>;
+  onDeleteChild: (childId: string) => Promise<void>;
+};
 
+export function MyChildrenPage({ children, onAddChild, onDeleteChild }: MyChildrenPageProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newChildName, setNewChildName] = useState('');
   const [newChildBirthdate, setNewChildBirthdate] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAddChild = () => {
+  const handleAddChild = async () => {
     if (!newChildName || !newChildBirthdate) return;
-
-    const birthDate = new Date(newChildBirthdate);
-    const age = new Date().getFullYear() - birthDate.getFullYear();
-
-    const colors = [
-      'var(--bubblegum-pink)',
-      'var(--lavender)',
-      'var(--mint-green)',
-      'var(--sunny-yellow)',
-      'var(--sky-blue)',
-    ];
-
-    const newChild: Child = {
-      id: Date.now().toString(),
-      name: newChildName,
-      age,
-      birthdate: birthDate.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      }),
-      artworkCount: 0,
-      avatarColor: colors[Math.floor(Math.random() * colors.length)],
-    };
-
-    setChildren([...children, newChild]);
-    setShowAddForm(false);
-    setNewChildName('');
-    setNewChildBirthdate('');
+    setIsSubmitting(true);
+    try {
+      await onAddChild({ name: newChildName, birthdate: newChildBirthdate });
+      setShowAddForm(false);
+      setNewChildName('');
+      setNewChildBirthdate('');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -110,7 +70,7 @@ export function MyChildrenPage() {
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      setChildren(children.filter((c) => c.id !== child.id));
+                      void onDeleteChild(child.id);
                     }}
                     className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full hover:bg-destructive/10 flex items-center justify-center"
                   >
@@ -129,7 +89,7 @@ export function MyChildrenPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Palette className="w-4 h-4" />
-                    <span>{child.artworkCount} masterpieces</span>
+                    <span>{child.artworkCount ?? 0} masterpieces</span>
                   </div>
                 </div>
 
@@ -189,10 +149,11 @@ export function MyChildrenPage() {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={handleAddChild}
+                    onClick={() => void handleAddChild()}
+                    disabled={isSubmitting}
                     className="flex-1 py-2 rounded-full bg-primary hover:bg-primary/90 transition-colors"
                   >
-                    Add
+                    {isSubmitting ? 'Saving...' : 'Add'}
                   </button>
                   <button
                     onClick={() => setShowAddForm(false)}

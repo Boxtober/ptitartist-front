@@ -2,20 +2,30 @@ import { Palette, Menu, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 
-export function Navbar({ onUploadClick }: { onUploadClick?: () => void }) {
+export function Navbar({
+  isAuthenticated,
+  onUploadClick,
+  onLogoutClick,
+}: {
+  isAuthenticated: boolean;
+  onUploadClick?: () => void;
+  onLogoutClick?: () => void;
+}) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navItems = [
-    { label: 'Gallery', path: '/' },
-    { label: 'Timeline', path: '/timeline' },
-    { label: 'My Children', path: '/children' },
-    { label: 'Favorites', path: '/favorites' },
-    { label: 'Settings', path: '/settings' },
-  ];
+  const navItems = isAuthenticated
+    ? [
+        { label: 'Gallery', path: '/' },
+        { label: 'Timeline', path: '/timeline' },
+        { label: 'My Children', path: '/children' },
+        { label: 'Favorites', path: '/favorites' },
+        { label: 'Settings', path: '/settings' },
+      ]
+    : [{ label: 'Gallery', path: '/' }];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-border">
+    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
@@ -49,6 +59,30 @@ export function Navbar({ onUploadClick }: { onUploadClick?: () => void }) {
               >
                 Upload Art
               </button>
+            )}
+            {onLogoutClick && (
+              <button
+                onClick={onLogoutClick}
+                className="px-6 py-2.5 rounded-full bg-muted hover:bg-muted/80 transition-all"
+              >
+                Logout
+              </button>
+            )}
+            {!isAuthenticated && (
+              <>
+                <Link
+                  to="/login"
+                  className="px-6 py-2.5 rounded-full bg-secondary hover:bg-secondary/90 transition-all"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-6 py-2.5 rounded-full bg-primary hover:bg-primary/90 transition-all"
+                >
+                  Register
+                </Link>
+              </>
             )}
           </div>
 
@@ -92,6 +126,35 @@ export function Navbar({ onUploadClick }: { onUploadClick?: () => void }) {
               >
                 Upload Art
               </button>
+            )}
+            {onLogoutClick && (
+              <button
+                onClick={() => {
+                  onLogoutClick();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full px-6 py-3 rounded-2xl bg-muted hover:bg-muted/80 transition-all text-left"
+              >
+                Logout
+              </button>
+            )}
+            {!isAuthenticated && (
+              <>
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-6 py-3 rounded-2xl bg-secondary hover:bg-secondary/90 transition-all"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-6 py-3 rounded-2xl bg-primary hover:bg-primary/90 transition-all"
+                >
+                  Register
+                </Link>
+              </>
             )}
           </div>
         )}

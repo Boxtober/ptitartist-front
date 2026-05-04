@@ -1,19 +1,90 @@
-import { useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster, toast } from 'sonner';
 import { Navbar } from './components/Navbar';
 import { HomePage } from './components/HomePage';
-import { MyChildrenPage } from './components/MyChildrenPage';
+import { MyChildrenPage, type Child } from './components/MyChildrenPage';
 import { ChildProfilePage } from './components/ChildProfilePage';
 import { SettingsPage } from './components/SettingsPage';
 import { FavoritesPage } from './components/FavoritesPage';
 import { TimelinePage } from './components/TimelinePage';
-import type { Drawing } from './components/GalleryCard';
+import Login from './components/Login';
+import Register from './components/Register';
+import type { Drawing } from './components/types';
+import {
+  createChild,
+  deleteChild,
+  getChildren,
+  getImages,
+  logout,
+  uploadImage,
+  type ApiChild,
+  type ApiImage,
+} from './api/auth';
+import type { UploadChild } from './components/UploadArea';
 
+function hasToken() {
+  return Boolean(localStorage.getItem('token'));
+}
 
-const initialDrawings: Drawing[] = [
+function parseDrawingMeta(description?: string | null) {
+  if (!description) return { childName: 'Unknown', age: 0 };
+  try {
+    const parsed = JSON.parse(description) as { childName?: string; age?: number };
+    return {
+      childName: parsed.childName ?? 'Unknown',
+      age: Number(parsed.age ?? 0),
+    };
+  } catch {
+    return { childName: description, age: 0 };
+  }
+}
+
+function mapApiImageToDrawing(image: ApiImage): Drawing {
+  const meta = parseDrawingMeta(image.description);
+  return {
+    id: image.id,
+    imageUrl: image.url,
+    childName: image.child?.firstName ?? meta.childName,
+    age: meta.age,
+    date: new Date(image.createdAt).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }),
+    rotation: (Math.random() * 6) - 3,
+  };
+}
+
+function calculateAgeFromBirthdate(birthDate?: string | null) {
+  if (!birthDate) return 0;
+  const dob = new Date(birthDate);
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age -= 1;
+  }
+  return Math.max(age, 0);
+}
+
+function mapApiChildToUi(child: ApiChild, drawingCount = 0): Child {
+  const birth = child.birthDate ? new Date(child.birthDate) : null;
+  return {
+    id: child.id,
+    name: child.firstName,
+    age: calculateAgeFromBirthdate(child.birthDate),
+    birthdate: birth
+      ? birth.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      : 'Unknown',
+    artworkCount: drawingCount,
+    avatarColor: child.color ?? 'var(--bubblegum-pink)',
+  };
+}
+
+const publicShowcaseDrawings: Drawing[] = [
   {
-    id: '1',
+    id: 'showcase-1',
     imageUrl: 'https://images.unsplash.com/photo-1761403942462-04b8b97f1fe9?w=400',
     childName: 'Sophie',
     age: 6,
@@ -21,7 +92,7 @@ const initialDrawings: Drawing[] = [
     rotation: -2,
   },
   {
-    id: '2',
+    id: 'showcase-2',
     imageUrl: 'https://images.unsplash.com/photo-1761403948893-c6438c52925a?w=400',
     childName: 'Lucas',
     age: 5,
@@ -29,107 +100,110 @@ const initialDrawings: Drawing[] = [
     rotation: 1.5,
   },
   {
-    id: '3',
+    id: 'showcase-3',
     imageUrl: 'https://images.unsplash.com/photo-1761403935539-0c971c206f25?w=400',
     childName: 'Emma',
     age: 7,
     date: 'April 20, 2026',
     rotation: -1,
   },
-  {
-    id: '4',
-    imageUrl: 'https://images.unsplash.com/photo-1583238829800-a72d2a05583c?w=400',
-    childName: 'Noah',
-    age: 4,
-    date: 'April 22, 2026',
-    rotation: 2,
-  },
-  {
-    id: '5',
-    imageUrl: 'https://images.unsplash.com/photo-1676969937951-0501ef745b22?w=400',
-    childName: 'Mia',
-    age: 8,
-    date: 'April 25, 2026',
-    rotation: -1.5,
-  },
-  {
-    id: '6',
-    imageUrl: 'https://images.unsplash.com/photo-1697962176820-b52c00e311f1?w=400',
-    childName: 'Liam',
-    age: 6,
-    date: 'April 27, 2026',
-    rotation: 1,
-  },
-  {
-    id: '7',
-    imageUrl: 'https://images.unsplash.com/photo-1753739541371-6866e984986a?w=400',
-    childName: 'Olivia',
-    age: 5,
-    date: 'April 28, 2026',
-    rotation: -2.5,
-  },
-  {
-    id: '8',
-    imageUrl: 'https://images.unsplash.com/photo-1757671678525-800857e58c6d?w=400',
-    childName: 'Ethan',
-    age: 7,
-    date: 'April 29, 2026',
-    rotation: 0.5,
-  },
-  {
-    id: '9',
-    imageUrl: 'https://images.unsplash.com/photo-1754239027382-2e145a685108?w=400',
-    childName: 'Ava',
-    age: 6,
-    date: 'April 30, 2026',
-    rotation: -0.5,
-  },
 ];
 
 export default function App() {
-  const [drawings, setDrawings] = useState<Drawing[]>(initialDrawings);
+  const [isAuthenticated, setIsAuthenticated] = useState(hasToken());
+  const [drawings, setDrawings] = useState<Drawing[]>([]);
+  const [children, setChildren] = useState<Child[]>([]);
 
-  const handleUpload = (file: File, childName: string, age: number) => {
-    // Create a URL for the uploaded file
-    const imageUrl = URL.createObjectURL(file);
-
-    // Generate random rotation between -3 and 3 degrees
-    const rotation = Math.random() * 6 - 3;
-
-    // Create new drawing
-    const newDrawing: Drawing = {
-      id: Date.now().toString(),
-      imageUrl,
-      childName,
-      age,
-      date: new Date().toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      }),
-      rotation,
-    };
-
-    // Add to the beginning of the array
-    setDrawings([newDrawing, ...drawings]);
-
-    // Show success toast with confetti effect
-    toast.success('🎉 Masterpiece uploaded!', {
-      description: `${childName}'s artwork has been added to the gallery`,
-      duration: 4000,
-    });
-
-    // Optional: Add confetti animation
-    if (typeof window !== 'undefined') {
-      import('canvas-confetti').then((confetti) => {
-        confetti.default({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#FFB3D9', '#D4C5F9', '#B8F3D8', '#FFF4A3', '#A3D5FF'],
-        });
-      });
+  const refreshDrawings = useCallback(async () => {
+    try {
+      const images = await getImages();
+      setDrawings(images.map(mapApiImageToDrawing));
+    } catch (error: any) {
+      if (error instanceof Error && error.message.includes('401')) {
+        logout();
+        setIsAuthenticated(false);
+      }
+      toast.error(error?.message ?? 'Impossible de charger la galerie');
     }
+  }, []);
+
+  const refreshChildren = useCallback(async () => {
+    try {
+      const childrenData = await getChildren();
+      const drawingsData = await getImages();
+      const countsByChild = drawingsData.reduce<Record<string, number>>((acc, image) => {
+        if (image.childId) acc[image.childId] = (acc[image.childId] ?? 0) + 1;
+        return acc;
+      }, {});
+      setChildren(childrenData.map((child) => mapApiChildToUi(child, countsByChild[child.id] ?? 0)));
+    } catch (error: any) {
+      if (error instanceof Error && error.message.includes('404')) {
+        setChildren([]);
+        return;
+      }
+      toast.error(error?.message ?? 'Impossible de charger les enfants');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setDrawings([]);
+      setChildren([]);
+      return;
+    }
+    void refreshDrawings();
+    void refreshChildren();
+  }, [isAuthenticated, refreshDrawings, refreshChildren]);
+
+  const handleUpload = async (file: File, child: UploadChild) => {
+    try {
+      const description = JSON.stringify({ childName: child.name, age: child.age });
+      await uploadImage(file, { description, childId: child.id });
+      await refreshDrawings();
+      await refreshChildren();
+      if (typeof window !== 'undefined') {
+        import('canvas-confetti').then((confetti) => {
+          confetti.default({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#FFB3D9', '#D4C5F9', '#B8F3D8', '#FFF4A3', '#A3D5FF'],
+          });
+        });
+      }
+      toast.success('Masterpiece uploaded!', {
+        description: `${child.name}'s artwork has been added to the gallery`,
+        duration: 4000,
+      });
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Upload impossible');
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsAuthenticated(false);
+  };
+
+  const handleAddChild = async ({ name, birthdate }: { name: string; birthdate: string }) => {
+    const colors = [
+      'var(--bubblegum-pink)',
+      'var(--lavender)',
+      'var(--mint-green)',
+      'var(--sunny-yellow)',
+      'var(--sky-blue)',
+    ];
+    await createChild({
+      firstName: name,
+      birthDate: new Date(birthdate).toISOString(),
+      color: colors[Math.floor(Math.random() * colors.length)],
+    });
+    await refreshChildren();
+  };
+
+  const handleDeleteChild = async (childId: string) => {
+    await deleteChild(childId);
+    await refreshChildren();
   };
 
   return (
@@ -146,22 +220,86 @@ export default function App() {
           }}
         />
 
-        <Navbar />
-
-  
         <Routes>
           <Route
-            path="/"
-            element={<HomePage drawings={drawings} onUpload={handleUpload} />}
+            path="/login"
+            element={
+              isAuthenticated ? (
+                <Navigate to="/" replace />
+              ) : (
+                <>
+                  <Navbar isAuthenticated={false} />
+                  <Login onSuccess={() => setIsAuthenticated(true)} />
+                </>
+              )
+            }
           />
-          <Route path="/timeline" element={<TimelinePage />} />
-          <Route path="/children" element={<MyChildrenPage />} />
-          <Route path="/child/:childId" element={<ChildProfilePage />} />
-          <Route path="/favorites" element={<FavoritesPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route
+            path="/register"
+            element={
+              isAuthenticated ? (
+                <Navigate to="/" replace />
+              ) : (
+                <>
+                  <Navbar isAuthenticated={false} />
+                  <Register />
+                </>
+              )
+            }
+          />
+
+          <Route
+            path="/"
+            element={
+              <>
+                <Navbar isAuthenticated={isAuthenticated} onLogoutClick={isAuthenticated ? handleLogout : undefined} />
+                <HomePage
+                  drawings={isAuthenticated ? drawings : publicShowcaseDrawings}
+                  children={isAuthenticated ? children : []}
+                  onUpload={handleUpload}
+                  canUpload={isAuthenticated}
+                  onGuestActionClick={() => {
+                    window.location.assign('/login');
+                  }}
+                />
+              </>
+            }
+          />
+          <Route
+            path="/timeline"
+            element={isAuthenticated ? <><Navbar isAuthenticated={isAuthenticated} onLogoutClick={handleLogout} /><TimelinePage /></> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/children"
+            element={
+              isAuthenticated ? (
+                <>
+                  <Navbar isAuthenticated={isAuthenticated} onLogoutClick={handleLogout} />
+                  <MyChildrenPage
+                    children={children}
+                    onAddChild={handleAddChild}
+                    onDeleteChild={handleDeleteChild}
+                  />
+                </>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/child/:childId"
+            element={isAuthenticated ? <><Navbar isAuthenticated={isAuthenticated} onLogoutClick={handleLogout} /><ChildProfilePage /></> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/favorites"
+            element={isAuthenticated ? <><Navbar isAuthenticated={isAuthenticated} onLogoutClick={handleLogout} /><FavoritesPage /></> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/settings"
+            element={isAuthenticated ? <><Navbar isAuthenticated={isAuthenticated} onLogoutClick={handleLogout} /><SettingsPage /></> : <Navigate to="/login" replace />}
+          />
+          <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
         </Routes>
-
-
         <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
 
           <div

@@ -1,19 +1,25 @@
 import { useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { Upload, X, Palette } from 'lucide-react';
+import { X, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 
+export type UploadChild = {
+  id: string;
+  name: string;
+  age: number;
+};
+
 interface UploadAreaProps {
-  onUpload: (file: File, childName: string, age: number) => void;
+  children: UploadChild[];
+  onUpload: (file: File, child: UploadChild) => void;
   onClose: () => void;
 }
 
-export function UploadArea({ onUpload, onClose }: UploadAreaProps) {
+export function UploadArea({ children, onUpload, onClose }: UploadAreaProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [childName, setChildName] = useState('');
-  const [age, setAge] = useState('');
+  const [selectedChildId, setSelectedChildId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -56,18 +62,18 @@ export function UploadArea({ onUpload, onClose }: UploadAreaProps) {
   };
 
   const handleSubmit = () => {
-    if (!selectedFile || !childName || !age) {
-      toast.error('Please fill in all fields');
+    if (!selectedFile || !selectedChildId) {
+      toast.error('Selectionne une image et un enfant');
       return;
     }
 
-    const ageNum = parseInt(age);
-    if (isNaN(ageNum) || ageNum < 1 || ageNum > 18) {
-      toast.error('Please enter a valid age (1-18)');
+    const selectedChild = children.find((child) => child.id === selectedChildId);
+    if (!selectedChild) {
+      toast.error('Enfant introuvable');
       return;
     }
 
-    onUpload(selectedFile, childName, ageNum);
+    onUpload(selectedFile, selectedChild);
     onClose();
   };
 
@@ -158,38 +164,35 @@ export function UploadArea({ onUpload, onClose }: UploadAreaProps) {
         {/* Form fields */}
         <div className="space-y-4 mb-6">
           <div>
-            <label className="block mb-2 text-sm">Child's Name</label>
-            <input
-              type="text"
-              value={childName}
-              onChange={(e) => setChildName(e.target.value)}
-              placeholder="Emma"
+            <label className="block mb-2 text-sm">Enfant</label>
+            <select
+              value={selectedChildId}
+              onChange={(e) => setSelectedChildId(e.target.value)}
               className="w-full px-4 py-3 rounded-2xl bg-input-background border border-border focus:border-primary focus:outline-none transition-colors"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-2 text-sm">Age</label>
-            <input
-              type="number"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              placeholder="5"
-              min="1"
-              max="18"
-              className="w-full px-4 py-3 rounded-2xl bg-input-background border border-border focus:border-primary focus:outline-none transition-colors"
-            />
+            >
+              <option value="">Choisir un enfant</option>
+              {children.map((child) => (
+                <option key={child.id} value={child.id}>
+                  {child.name} ({child.age} ans)
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
         {/* Submit button */}
         <button
           onClick={handleSubmit}
-          disabled={!selectedFile || !childName || !age}
+          disabled={!selectedFile || !selectedChildId || children.length === 0}
           className="w-full py-4 rounded-full bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
         >
           Upload Masterpiece ✨
         </button>
+        {children.length === 0 && (
+          <p className="text-sm text-muted-foreground mt-3">
+            Ajoute d'abord un enfant dans "My Children" pour publier un dessin.
+          </p>
+        )}
       </motion.div>
     </motion.div>
   );

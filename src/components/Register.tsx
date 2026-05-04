@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { register } from '../api/auth';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Button } from './ui/Button';
-import Alert from './ui/Alert';
+import { Button } from './ui/button';
+import { Alert, AlertDescription } from './ui/alert';
 
 function normalizeError(err: any) {
   if (!err) return 'Erreur inconnue';
@@ -26,7 +26,7 @@ export default function Register() {
     setLoading(true);
     try {
       await register(email, password);
-      setMessage('Compte créé !');
+      setMessage('Compte cree ! Connecte-toi pour continuer.');
       navigate('/login');
     } catch (err: any) {
       setError(normalizeError(err));
@@ -41,11 +41,23 @@ export default function Register() {
       <div className="form">
         <input className="input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
         <input className="input" type="password" placeholder="Mot de passe" value={password} onChange={e => setPassword(e.target.value)} />
-  <Button variant="primary" onClick={handleRegister} disabled={loading}>{loading ? 'Traitement...' : "S'inscrire"}</Button>
+        <Button onClick={handleRegister} disabled={loading}>
+          {loading ? 'Traitement...' : "S'inscrire"}
+        </Button>
       </div>
-        {error && <Alert type="error" onClose={() => setError(null)}>{error}</Alert>}
-        {message && <Alert type="success" onClose={() => setMessage('')}>{message}</Alert>}
-      <p>Déjà un compte ? <a href="/login">Se connecter</a></p>
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {message && (
+        <Alert className="mt-4">
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      )}
+      <p className="mt-4">
+        Deja un compte ? <Link to="/login">Se connecter</Link>
+      </p>
     </motion.div>
   );
 }
