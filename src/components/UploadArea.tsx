@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { X, Palette } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,14 +12,25 @@ export type UploadChild = {
 interface UploadAreaProps {
   children: UploadChild[];
   onUpload: (file: File, child: UploadChild) => void;
+  onCreateChild?: () => void;
   onClose: () => void;
 }
 
-export function UploadArea({ children, onUpload, onClose }: UploadAreaProps) {
+export function UploadArea({ children, onUpload, onClose, onCreateChild }: UploadAreaProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedChildId, setSelectedChildId] = useState('');
+
+  // If children are provided, default to the first child
+  // when the component mounts or when the children list changes.
+  // This ensures the select shows a default value but still allows
+  // the user to change it.
+  useEffect(() => {
+    if (children && children.length > 0) {
+      setSelectedChildId((prev) => (prev ? prev : children[0].id));
+    }
+  }, [children]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -167,10 +178,23 @@ export function UploadArea({ children, onUpload, onClose }: UploadAreaProps) {
             <label className="block mb-2 text-sm">Enfant</label>
             <select
               value={selectedChildId}
-              onChange={(e) => setSelectedChildId(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                // special value to create a new child
+                if (val === '__create__') {
+                  // call parent handler if provided
+                  // parent is expected to open the My Children page/modal
+                  onCreateChild?.();
+                  // reset selection until parent updates children
+                  setSelectedChildId('');
+                  return;
+                }
+                setSelectedChildId(val);
+              }}
               className="w-full px-4 py-3 rounded-2xl bg-input-background border border-border focus:border-primary focus:outline-none transition-colors"
             >
               <option value="">Choisir un enfant</option>
+              <option value="__create__">+ Créer un enfant...</option>
               {children.map((child) => (
                 <option key={child.id} value={child.id}>
                   {child.name} ({child.age} ans)

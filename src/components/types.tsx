@@ -5,4 +5,5 @@ export interface Drawing {
   age: number;
   date: string;
   rotation: number;
+  isFavorite?: boolean;
 }

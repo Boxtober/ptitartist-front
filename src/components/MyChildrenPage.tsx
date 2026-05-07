@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
-import { Plus, Palette, Calendar, Trash2 } from 'lucide-react';
+import { Plus, Palette, Calendar } from 'lucide-react';
+import { DeleteChildButton } from './DeleteChildButton';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -54,11 +55,16 @@ export function MyChildrenPage({ children, onAddChild, onDeleteChild }: MyChildr
           {children.map((child) => (
             <motion.div
               key={child.id}
-              className="group bg-white rounded-3xl p-6 shadow-md hover:shadow-2xl transition-all cursor-pointer"
+              className="group bg-white rounded-3xl p-6 shadow-md hover:shadow-2xl transition-all cursor-pointer relative"
               whileHover={{ scale: 1.02 }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
+              {/* Delete button placed absolutely to avoid being inside the Link */}
+              <div className="absolute top-4 right-4 z-50">
+                <DeleteChildButton childId={child.id} childName={child.name} onDelete={onDeleteChild} />
+              </div>
+
               <Link to={`/child/${child.id}`} className="block">
                 <div className="flex items-start justify-between mb-4">
                   <div
@@ -67,15 +73,6 @@ export function MyChildrenPage({ children, onAddChild, onDeleteChild }: MyChildr
                   >
                     {child.name.charAt(0)}
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      void onDeleteChild(child.id);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full hover:bg-destructive/10 flex items-center justify-center"
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </button>
                 </div>
 
                 <h3 className="font-[var(--font-family-heading)] text-2xl mb-2">

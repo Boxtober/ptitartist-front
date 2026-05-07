@@ -1,15 +1,20 @@
 import { motion } from 'motion/react';
 import { X, Download, Heart, Calendar, User } from 'lucide-react';
-import type { Drawing } from './GalleryCard';
+import type { Drawing } from './types';
 import { useState } from 'react';
+import { DeleteImageButton } from './DeleteImageButton';
+import { toast } from 'sonner';
+import { addFavorite, removeFavorite } from '../api/auth';
 
 interface ArtworkDetailModalProps {
   drawing: Drawing;
   onClose: () => void;
+  onDeleted?: (imageId: string) => void;
+  onFavoriteToggled?: (imageId: string, isFav: boolean) => void;
 }
 
-export function ArtworkDetailModal({ drawing, onClose }: ArtworkDetailModalProps) {
-  const [isFavorite, setIsFavorite] = useState(false);
+export function ArtworkDetailModal({ drawing, onClose, onDeleted, onFavoriteToggled }: ArtworkDetailModalProps) {
+  const [isFavorite, setIsFavorite] = useState<boolean>(Boolean(drawing.isFavorite));
 
   const handleDownload = () => {
     // Create a download link
@@ -98,7 +103,26 @@ export function ArtworkDetailModal({ drawing, onClose }: ArtworkDetailModalProps
           {/* Actions */}
           <div className="space-y-3">
             <button
-              onClick={() => setIsFavorite(!isFavorite)}
+              onClick={async () => {
+                const prev = isFavorite;
+                setIsFavorite(!prev);
+                try {
+                  if (!prev) {
+                    toast('Ajout aux favoris...');
+                    await addFavorite(drawing.id);
+                    toast.success('Ajouté aux favoris');
+                  } else {
+                    toast('Suppression des favoris...');
+                    await removeFavorite(drawing.id);
+                    toast.success('Retiré des favoris');
+                  }
+                  // notify parent about the change
+                  onFavoriteToggled?.(drawing.id, !prev);
+                } catch (err: any) {
+                  setIsFavorite(prev); // revert
+                  toast.error(err?.message ?? "Erreur lors de l'opération");
+                }
+              }}
               className={`w-full py-3 rounded-full border-2 transition-all flex items-center justify-center gap-2 ${
                 isFavorite
                   ? 'bg-primary border-primary'
@@ -116,6 +140,15 @@ export function ArtworkDetailModal({ drawing, onClose }: ArtworkDetailModalProps
               <Download className="w-5 h-5" />
               <span>Download Artwork</span>
             </button>
+
+            <DeleteImageButton
+              imageId={drawing.id}
+              onDeleted={() => {
+                // close modal after deletion and notify parent to remove the image from state
+                onClose();
+                onDeleted?.(drawing.id);
+              }}
+            />
           </div>
 
           {/* Privacy Notice */}

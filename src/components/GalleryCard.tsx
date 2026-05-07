@@ -1,14 +1,7 @@
 import { motion } from 'motion/react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-
-export interface Drawing {
-  id: string;
-  imageUrl: string;
-  childName: string;
-  age: number;
-  date: string;
-  rotation: number;
-}
+import { Heart } from 'lucide-react';
+import type { Drawing } from './types';
 
 export function GalleryCard({ drawing }: { drawing: Drawing }) {
   return (
@@ -44,9 +37,13 @@ export function GalleryCard({ drawing }: { drawing: Drawing }) {
         <p className="text-muted-foreground text-xs">{drawing.date}</p>
       </div>
 
-      {/* Decorative corner element */}
-      <div className="absolute top-2 right-2 w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="w-full h-full rounded-full bg-gradient-to-br from-[var(--sunny-yellow)] to-[var(--mint-green)]" />
+      {/* Favorite badge */}
+      <div className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center">
+        <div className="pointer-events-none flex items-center justify-center">
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${drawing.isFavorite ? 'bg-[var(--bubblegum-pink)]' : 'bg-white/80 group-hover:bg-white'}`}>
+            <Heart className={`w-4 h-4 ${drawing.isFavorite ? 'text-white' : 'text-muted-foreground'}`} />
+          </div>
+        </div>
       </div>
     </motion.div>
   );

@@ -53,6 +53,7 @@ function mapApiImageToDrawing(image: ApiImage): Drawing {
       year: 'numeric',
     }),
     rotation: (Math.random() * 6) - 3,
+    isFavorite: Boolean((image as any).isFavorite),
   };
 }
 
@@ -145,6 +146,17 @@ export default function App() {
     }
   }, []);
 
+  const handleImageDeleted = useCallback((imageId: string) => {
+    // Optimistically remove from state
+    setDrawings((prev) => prev.filter((d) => d.id !== imageId));
+    // Refresh children counts asynchronously
+    void refreshChildren();
+  }, [refreshChildren]);
+
+  const handleToggleFavorite = useCallback((imageId: string, isFav: boolean) => {
+    setDrawings((prev) => prev.map((d) => (d.id === imageId ? { ...d, isFavorite: isFav } : d)));
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) {
       setDrawings([]);
@@ -202,8 +214,14 @@ export default function App() {
   };
 
   const handleDeleteChild = async (childId: string) => {
-    await deleteChild(childId);
-    await refreshChildren();
+    try {
+      await deleteChild(childId);
+      await refreshChildren();
+      toast.success('Child deleted');
+    } catch (error: any) {
+      console.error('Delete child failed', error);
+      toast.error(error?.message ?? 'Impossible de supprimer l\'enfant');
+    }
   };
 
   return (
@@ -257,6 +275,8 @@ export default function App() {
                   drawings={isAuthenticated ? drawings : publicShowcaseDrawings}
                   children={isAuthenticated ? children : []}
                   onUpload={handleUpload}
+                  onImageDeleted={handleImageDeleted}
+                  onToggleFavorite={handleToggleFavorite}
                   canUpload={isAuthenticated}
                   onGuestActionClick={() => {
                     window.location.assign('/login');
@@ -292,7 +312,18 @@ export default function App() {
           />
           <Route
             path="/favorites"
-            element={isAuthenticated ? <><Navbar isAuthenticated={isAuthenticated} onLogoutClick={handleLogout} /><FavoritesPage /></> : <Navigate to="/login" replace />}
+            element={isAuthenticated ? (
+              <>
+                <Navbar isAuthenticated={isAuthenticated} onLogoutClick={handleLogout} />
+                <FavoritesPage
+                  drawings={drawings}
+                  onToggleFavorite={handleToggleFavorite}
+                  onImageDeleted={handleImageDeleted}
+                />
+              </>
+            ) : (
+              <Navigate to="/login" replace />
+            )}
           />
           <Route
             path="/settings"

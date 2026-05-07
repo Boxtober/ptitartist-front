@@ -3,54 +3,109 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Cake, TrendingUp, Download } from 'lucide-react';
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { GalleryCard } from './GalleryCard';
-import type { Drawing } from './GalleryCard';
-import { useState } from 'react';
+import type { Drawing } from './types';
+import { useState, useEffect } from 'react';
 import { ArtworkDetailModal } from './ArtworkDetailModal';
+import { getChildren, getImages, type ApiImage } from '../api/auth';
+import { toast } from 'sonner';
 
 export function ChildProfilePage() {
   const { childId } = useParams();
   const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
+  const [childData, setChildData] = useState<{ id: string; name: string; birthdate?: string | null; avatarColor?: string } | null>(null);
+  const [childDrawings, setChildDrawings] = useState<Drawing[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - in real app, fetch based on childId
-  const childData = {
-    name: 'Sophie',
-    age: 6,
-    birthdate: 'March 15, 2020',
-    totalArtworks: 12,
-    avatarColor: 'var(--bubblegum-pink)',
-  };
+  function calculateAgeFromBirthdate(birthDate?: string | null) {
+    if (!birthDate) return 0;
+    const dob = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age -= 1;
+    }
+    return Math.max(age, 0);
+  }
 
-  const childDrawings: Drawing[] = [
-    {
-      id: '1',
-      imageUrl: 'https://images.unsplash.com/photo-1761403942462-04b8b97f1fe9?w=400',
-      childName: 'Sophie',
-      age: 6,
-      date: 'April 15, 2026',
-      rotation: -2,
-    },
-    {
-      id: '2',
-      imageUrl: 'https://images.unsplash.com/photo-1761403948893-c6438c52925a?w=400',
-      childName: 'Sophie',
-      age: 6,
-      date: 'April 10, 2026',
-      rotation: 1.5,
-    },
-    {
-      id: '3',
-      imageUrl: 'https://images.unsplash.com/photo-1761403935539-0c971c206f25?w=400',
-      childName: 'Sophie',
-      age: 6,
-      date: 'April 5, 2026',
-      rotation: -1,
-    },
-  ];
+  function mapApiImageToDrawing(image: ApiImage): Drawing {
+    // try to parse metadata if any
+    let childName = image.child?.firstName ?? 'Unknown';
+    let age = 0;
+    try {
+      if (image.description) {
+        const parsed = JSON.parse(image.description) as { childName?: string; age?: number };
+        childName = parsed.childName ?? childName;
+        age = Number(parsed.age ?? 0);
+      }
+    } catch {
+      // ignore
+    }
+    return {
+      id: image.id,
+      imageUrl: image.url,
+      childName,
+      age,
+      date: new Date(image.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      rotation: (Math.random() * 6) - 3,
+      isFavorite: Boolean((image as any).isFavorite),
+    };
+  }
+
+  useEffect(() => {
+    if (!childId) return;
+    let mounted = true;
+    setLoading(true);
+    (async () => {
+      try {
+        const children = await getChildren();
+        const found = children.find((c) => c.id === childId);
+        if (!found) {
+          toast.error('Enfant introuvable');
+          setChildData(null);
+          setChildDrawings([]);
+          setLoading(false);
+          return;
+        }
+        if (!mounted) return;
+        setChildData({ id: found.id, name: found.firstName, birthdate: found.birthDate ?? null, avatarColor: found.color ?? 'var(--bubblegum-pink)' });
+
+        const images = await getImages();
+        if (!mounted) return;
+        const filtered = images.filter((img) => {
+          if (img.childId === childId) return true;
+          // Fallback: try to parse description for childId or childName
+          if (img.description) {
+            try {
+              const parsed = JSON.parse(img.description) as any;
+              if (parsed?.childId && String(parsed.childId) === String(childId)) return true;
+              if (parsed?.childName && parsed.childName === found.firstName) return true;
+            } catch {
+              // ignore non-json descriptions
+              if (typeof img.description === 'string' && img.description.includes(found.firstName)) return true;
+            }
+          }
+          return false;
+        });
+        setChildDrawings(filtered.map(mapApiImageToDrawing));
+      } catch (err: any) {
+        console.error('Failed to load child profile', err);
+        toast.error(err?.message ?? 'Impossible de charger le profil');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [childId]);
 
   const stats = [
-    { label: 'Total Artworks', value: childData.totalArtworks, icon: TrendingUp },
-    { label: 'This Month', value: 5, icon: Calendar },
-    { label: 'Age', value: `${childData.age} years`, icon: Cake },
+    { label: 'Total Artworks', value: childDrawings.length, icon: TrendingUp },
+    { label: 'This Month', value: childDrawings.filter(d => {
+        const dt = new Date(d.date);
+        const now = new Date();
+        return dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear();
+      }).length, icon: Calendar },
+    { label: 'Age', value: `${calculateAgeFromBirthdate(childData?.birthdate)} years`, icon: Cake },
   ];
 
   return (
@@ -70,20 +125,20 @@ export function ChildProfilePage() {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
             <div
               className="w-24 h-24 rounded-full flex items-center justify-center text-4xl flex-shrink-0"
-              style={{ backgroundColor: childData.avatarColor }}
+              style={{ backgroundColor: childData?.avatarColor ?? 'var(--bubblegum-pink)' }}
             >
-              {childData.name.charAt(0)}
+              {(childData?.name ?? '').charAt(0) || '?'}
             </div>
 
             <div className="flex-1">
               <h1 className="font-[var(--font-family-heading)] text-5xl mb-2">
-                {childData.name}'s Gallery 🎨
+                {childData ? `${childData.name}'s Gallery 🎨` : 'Loading...'}
               </h1>
               <p className="text-muted-foreground text-lg mb-4">
                 Celebrating creativity and imagination
               </p>
               <p className="text-sm text-muted-foreground">
-                Born {childData.birthdate}
+                Born {childData?.birthdate ?? 'Unknown'}
               </p>
             </div>
 
@@ -147,6 +202,9 @@ export function ChildProfilePage() {
         <ArtworkDetailModal
           drawing={selectedDrawing}
           onClose={() => setSelectedDrawing(null)}
+          onFavoriteToggled={(id, fav) => {
+            setChildDrawings((prev) => prev.map((d) => (d.id === id ? { ...d, isFavorite: fav } : d)));
+          }}
         />
       )}
     </div>

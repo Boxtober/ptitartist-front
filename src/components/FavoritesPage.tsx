@@ -2,40 +2,20 @@ import { motion } from 'motion/react';
 import { Heart, Sparkles } from 'lucide-react';
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { GalleryCard } from './GalleryCard';
-import type { Drawing } from './GalleryCard';
+import type { Drawing } from './types';
 import { useState } from 'react';
 import { ArtworkDetailModal } from './ArtworkDetailModal';
 
-export function FavoritesPage() {
+interface FavoritesPageProps {
+  drawings?: Drawing[];
+  onToggleFavorite?: (imageId: string, isFav: boolean) => void;
+  onImageDeleted?: (imageId: string) => void;
+}
+
+export function FavoritesPage({ drawings = [], onToggleFavorite, onImageDeleted }: FavoritesPageProps) {
   const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
 
-  // Mock favorite drawings
-  const favoriteDrawings: Drawing[] = [
-    {
-      id: '1',
-      imageUrl: 'https://images.unsplash.com/photo-1761403942462-04b8b97f1fe9?w=400',
-      childName: 'Sophie',
-      age: 6,
-      date: 'April 15, 2026',
-      rotation: -2,
-    },
-    {
-      id: '3',
-      imageUrl: 'https://images.unsplash.com/photo-1761403935539-0c971c206f25?w=400',
-      childName: 'Emma',
-      age: 7,
-      date: 'April 20, 2026',
-      rotation: -1,
-    },
-    {
-      id: '6',
-      imageUrl: 'https://images.unsplash.com/photo-1697962176820-b52c00e311f1?w=400',
-      childName: 'Liam',
-      age: 6,
-      date: 'April 27, 2026',
-      rotation: 1,
-    },
-  ];
+  const favoriteDrawings = drawings.filter((d) => d.isFavorite);
 
   if (favoriteDrawings.length === 0) {
     return (
@@ -129,7 +109,6 @@ export function FavoritesPage() {
           <Masonry
             columnsCount={3}
             gutter="24px"
-           
           >
             {favoriteDrawings.map((drawing) => (
               <GalleryCard key={drawing.id} drawing={drawing} />
@@ -143,6 +122,8 @@ export function FavoritesPage() {
         <ArtworkDetailModal
           drawing={selectedDrawing}
           onClose={() => setSelectedDrawing(null)}
+          onFavoriteToggled={(id, fav) => onToggleFavorite?.(id, fav)}
+          onDeleted={(id) => { setSelectedDrawing(null); onImageDeleted?.(id); }}
         />
       )}
     </div>

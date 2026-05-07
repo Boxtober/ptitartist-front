@@ -21,6 +21,7 @@ export type ApiImage = {
     id: string;
     firstName: string;
   } | null;
+  isFavorite?: boolean;
 };
 
 export type ApiChild = {
@@ -143,3 +144,137 @@ export async function uploadImage(
 }
 
 export const logout = () => localStorage.removeItem('token');
+
+export async function deleteImage(imageId: string) {
+  const url = `${API_URL}/images/${imageId}`;
+  let res = await fetch(url, {
+    method: 'DELETE',
+    headers: buildHeaders(true),
+  });
+
+  if (!res.ok) {
+    console.warn(`deleteImage: primary DELETE ${url} returned ${res.status}`);
+    try {
+      const text = await res.text();
+      console.warn('deleteImage: response body:', text);
+    } catch (e) {
+      // ignore
+    }
+
+    const fallback = `${API_URL}/upload/${imageId}`;
+    console.warn(`deleteImage: attempting fallback DELETE ${fallback}`);
+    const res2 = await fetch(fallback, {
+      method: 'DELETE',
+      headers: buildHeaders(true),
+    });
+    if (res2.ok) return parseResponse<{ success: boolean; deleted: any }>(res2);
+
+    return parseResponse<{ success: boolean; deleted: any }>(res);
+  }
+  return parseResponse<{ success: boolean; deleted: any }>(res);
+}
+
+export async function addFavorite(imageId: string) {
+  const res = await fetch(`${API_URL}/images/${imageId}/favorite`, {
+    method: 'POST',
+    headers: buildHeaders(true),
+  });
+
+  if (res.ok) return parseResponse<{ success: boolean }>(res);
+
+  if (res.status === 400) {
+    try {
+      const payload = await res.json();
+      if (payload?.error === 'Already favorited') {
+        return { success: true } as { success: boolean };
+      }
+    } catch {
+      // fallthrough to error
+    }
+  }
+
+  return parseResponse<{ success: boolean }>(res);
+}
+
+export async function removeFavorite(imageId: string) {
+  const res = await fetch(`${API_URL}/images/${imageId}/favorite`, {
+    method: 'DELETE',
+    headers: buildHeaders(true),
+  });
+  return parseResponse<{ success: boolean }>(res);
+}
+
+// Settings API helpers
+export type Settings = {
+  isPrivateProfile?: boolean;
+  emailReminders?: boolean;
+  autoBackup?: boolean;
+};
+
+export async function getSettings() {
+  const res = await fetch(`${API_URL}/settings`, {
+    method: 'GET',
+    headers: buildHeaders(true),
+  });
+  return parseResponse<Settings>(res);
+}
+
+export async function updateSettings(payload: Partial<Settings>) {
+  const res = await fetch(`${API_URL}/settings`, {
+    method: 'PUT',
+    headers: buildHeaders(true, { 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<{ success: boolean; settings: Settings }>(res);
+}
+
+// Export all artwork -> returns blob
+export async function exportAll(): Promise<Blob> {
+  const res = await fetch(`${API_URL}/export`, {
+    method: 'POST',
+    headers: buildHeaders(true), // IMPORTANT: no Content-Type since no body
+  });
+
+  if (!res.ok) {
+    try {
+      const err = await res.json();
+      throw new Error(err?.error ?? err?.message ?? `Erreur export ${res.status}`);
+    } catch {
+      throw new Error(`Erreur export ${res.status}`);
+    }
+  }
+
+  const blob = await res.blob();
+  return blob;
+}
+
+// Delete account
+export async function deleteAccount() {
+  const res = await fetch(`${API_URL}/me`, {
+    method: 'DELETE',
+    headers: buildHeaders(true),
+  });
+  return parseResponse<{ success: boolean }>(res);
+}
+
+// Avatar upload/delete
+export async function uploadAvatar(file: File) {
+  const form = new FormData();
+  form.append('file', file);
+
+  const res = await fetch(`${API_URL}/profile/avatar`, {
+    method: 'POST',
+    headers: buildHeaders(true), // do not set Content-Type for FormData
+    body: form,
+  });
+
+  return parseResponse<ApiUser>(res);
+}
+
+export async function deleteAvatar() {
+  const res = await fetch(`${API_URL}/profile/avatar`, {
+    method: 'DELETE',
+    headers: buildHeaders(true),
+  });
+  return parseResponse<{ success: true; user?: ApiUser }>(res);
+}

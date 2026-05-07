@@ -10,6 +10,8 @@ interface HomePageProps {
   drawings: Drawing[];
   children: UploadChild[];
   onUpload: (file: File, child: UploadChild) => void;
+  onImageDeleted?: (imageId: string) => void;
+  onToggleFavorite?: (imageId: string, isFav: boolean) => void;
   canUpload?: boolean;
   onGuestActionClick?: () => void;
 }
@@ -18,6 +20,8 @@ export function HomePage({
   drawings,
   children,
   onUpload,
+  onImageDeleted,
+  onToggleFavorite,
   canUpload = true,
   onGuestActionClick,
 }: HomePageProps) {
@@ -52,11 +56,30 @@ export function HomePage({
       {canUpload && <FloatingActionButton onClick={() => setShowUpload(true)} />}
 
       {canUpload && showUpload && (
-        <UploadArea children={children} onUpload={onUpload} onClose={() => setShowUpload(false)} />
+        <UploadArea
+          children={children}
+          onUpload={onUpload}
+          onClose={() => setShowUpload(false)}
+          onCreateChild={() => {
+            setShowUpload(false);
+            // navigate to My Children page — simple approach using location
+            window.location.href = '/my-children';
+          }}
+        />
       )}
 
       {selectedDrawing && (
-        <ArtworkDetailModal drawing={selectedDrawing} onClose={() => setSelectedDrawing(null)} />
+        <ArtworkDetailModal
+          drawing={selectedDrawing}
+          onClose={() => setSelectedDrawing(null)}
+          onDeleted={(id) => {
+            setSelectedDrawing(null);
+            onImageDeleted?.(id);
+          }}
+          onFavoriteToggled={(id, fav) => {
+            onToggleFavorite?.(id, fav);
+          }}
+        />
       )}
     </>
   );

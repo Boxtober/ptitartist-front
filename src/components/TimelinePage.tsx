@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { Calendar, TrendingUp, Award, Sparkles } from 'lucide-react';
-import type { Drawing } from './GalleryCard';
+import type { Drawing } from './types';
 import { useState } from 'react';
 import { ArtworkDetailModal } from './ArtworkDetailModal';
 
