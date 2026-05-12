@@ -34,8 +34,6 @@ export type ApiChild = {
   createdAt?: string;
 };
 
-type ApiError = { error?: string; message?: string };
-
 function getToken() {
   return localStorage.getItem('token');
 }
@@ -52,13 +50,19 @@ function buildHeaders(withAuth = false, extraHeaders: Record<string, string> = {
 async function parseResponse<T>(res: Response): Promise<T> {
   if (res.ok) return res.json() as Promise<T>;
 
-  let payload: ApiError | undefined;
+  // Try to parse JSON error first, fallback to plain text for better diagnostics
   try {
-    payload = await res.json();
-  } catch {
-    payload = undefined;
+    const payload = await res.json();
+    const msg = (payload && (payload.error || payload.message)) || JSON.stringify(payload);
+    throw new Error(msg || `Erreur HTTP ${res.status}`);
+  } catch (jsonErr) {
+    try {
+      const text = await res.text();
+      throw new Error(text || `Erreur HTTP ${res.status}`);
+    } catch (textErr) {
+      throw new Error(`Erreur HTTP ${res.status}`);
+    }
   }
-  throw new Error(payload?.error ?? payload?.message ?? `Erreur HTTP ${res.status}`);
 }
 
 export async function register(email: string, password: string) {
@@ -126,7 +130,7 @@ export async function deleteChild(childId: string) {
 
 export async function uploadImage(
   file: File,
-  options?: { description?: string; childId?: string; imageDescription?: string },
+  options?: { description?: string; childId?: string; imageDescription?: string; createdAt?: string },
 ) {
   const form = new FormData();
   form.append('file', file);
@@ -140,6 +144,10 @@ export async function uploadImage(
     form.append('description', options.description);
   }
   if (options?.childId) form.append('childId', options.childId);
+  if (options?.createdAt) {
+    // include createdAt in FormData; server accepts createdAt multipart field or x-created-at header
+    form.append('createdAt', options.createdAt);
+  }
 
   // Do NOT send custom x-* headers by default to avoid CORS preflight failures.
   // The server accepts these values from multipart form fields, so we attach them to FormData above.
@@ -148,6 +156,34 @@ export async function uploadImage(
     headers: buildHeaders(true),
     body: form,
   });
+  const image = await parseResponse<ApiImage>(res);
+
+  // If the caller provided a createdAt we send an explicit JSON PUT to ensure
+  // the backend updates the DB. Some servers don't persist multipart fields
+  // reliably into the DB, so an explicit PUT with JSON (and correct
+  // Authorization header) guarantees the update.
+  if (options?.createdAt) {
+    try {
+      const updated = await updateImage(image.id, { createdAt: options.createdAt });
+      return updated;
+    } catch (err) {
+      // If update fails, still return the uploaded image but surface a warning in console
+      console.warn('uploadImage: createdAt update failed', err);
+      return image;
+    }
+  }
+
+  return image;
+}
+
+// Update image metadata (createdAt etc.)
+export async function updateImage(imageId: string, payload: { createdAt?: string | null; description?: string | null; imageDescription?: string | null; childId?: string | null }) {
+  const res = await fetch(`${API_URL}/images/${imageId}`, {
+    method: 'PUT',
+    headers: buildHeaders(true, { 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+  });
+
   return parseResponse<ApiImage>(res);
 }
 

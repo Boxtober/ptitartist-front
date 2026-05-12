@@ -19,40 +19,79 @@ export function FavoritesPage({ drawings = [], onToggleFavorite, onImageDeleted 
   const favoriteDrawings = drawings.filter((d) => d.isFavorite);
 
   if (favoriteDrawings.length === 0) {
+    // Show empty favorites message but still render Recent Uploads below
     return (
       <div className="min-h-screen pt-24 pb-16 px-4">
-        <div className="max-w-2xl mx-auto text-center py-20">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="space-y-6"
-          >
-            <div className="relative w-48 h-48 mx-auto mb-8">
-              <motion.div
-                className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--bubblegum-pink)] via-[var(--lavender)] to-[var(--mint-green)] opacity-20"
-                animate={{
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 180, 360],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  ease: 'linear',
-                }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Heart className="w-24 h-24 text-[var(--bubblegum-pink)]" />
+        <div className="max-w-7xl mx-auto">
+          <div className="max-w-2xl mx-auto text-center py-20">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="space-y-6"
+            >
+              <div className="relative w-48 h-48 mx-auto mb-8">
+                <motion.div
+                  className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--bubblegum-pink)] via-[var(--lavender)] to-[var(--mint-green)] opacity-20"
+                  animate={{
+                    scale: [1, 1.1, 1],
+                    rotate: [0, 180, 360],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: 'linear',
+                  }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Heart className="w-24 h-24 text-[var(--bubblegum-pink)]" />
+                </div>
               </div>
-            </div>
 
-            <h3 className="font-[var(--font-family-heading)] text-3xl sm:text-4xl">
-              No favorites yet!
-            </h3>
-            <p className="text-muted-foreground text-lg">
-              Start adding artwork to your favorites to see them here ❤️
-            </p>
-          </motion.div>
+              <h3 className="font-[var(--font-family-heading)] text-3xl sm:text-4xl">
+                No favorites yet!
+              </h3>
+              <p className="text-muted-foreground text-lg">
+                Start adding artwork to your favorites to see them here ❤️
+              </p>
+            </motion.div>
+          </div>
+
+          {/* Recent uploads section */}
+          <div className="max-w-7xl mx-auto mt-12">
+            <h2 className="font-[var(--font-family-heading)] text-2xl mb-4">Recent Uploads</h2>
+            <div onClick={(e) => {
+              const target = e.target as HTMLElement;
+              const card = target.closest('[data-drawing-id]');
+              if (card) {
+                const drawingId = card.getAttribute('data-drawing-id');
+                const drawing = drawings.find(d => d.id === drawingId);
+                if (drawing) setSelectedDrawing(drawing);
+              }
+            }}>
+              <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 600: 2, 900: 3, 1200: 4 }}>
+                <Masonry columnsCount={4} gutter="12px">
+                  {drawings
+                    .slice()
+                    .sort((a, b) => (new Date(b.date).getTime() - new Date(a.date).getTime()))
+                    .slice(0, 6)
+                    .map((d) => (
+                      <SmallGalleryCard key={d.id} drawing={d} />
+                    ))}
+                </Masonry>
+              </ResponsiveMasonry>
+            </div>
+          </div>
         </div>
+
+        {/* Detail Modal */}
+        {selectedDrawing && (
+          <ArtworkDetailModal
+            drawing={selectedDrawing}
+            onClose={() => setSelectedDrawing(null)}
+            onFavoriteToggled={(id, fav) => onToggleFavorite?.(id, fav)}
+            onDeleted={(id) => { setSelectedDrawing(null); onImageDeleted?.(id); }}
+          />
+        )}
       </div>
     );
   }

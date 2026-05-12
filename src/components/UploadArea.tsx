@@ -1,6 +1,9 @@
 import { useRef, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { X, Palette } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
+import { Calendar } from './ui/calendar';
+import { Button } from './ui/button';
 import { toast } from 'sonner';
 
 export type UploadChild = {
@@ -11,7 +14,7 @@ export type UploadChild = {
 
 interface UploadAreaProps {
   children: UploadChild[];
-  onUpload: (file: File, child: UploadChild, imageDescription?: string) => void;
+  onUpload: (file: File, child: UploadChild, imageDescription?: string, createdAt?: string) => void;
   onCreateChild?: () => void;
   onClose: () => void;
 }
@@ -22,6 +25,10 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedChildId, setSelectedChildId] = useState('');
   const [imageDescription, setImageDescription] = useState('');
+  const [createdDate, setCreatedDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  });
 
   // If children are provided, default to the first child
   // when the component mounts or when the children list changes.
@@ -85,7 +92,9 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
       return;
     }
 
-    onUpload(selectedFile, selectedChild, imageDescription?.trim() || undefined);
+    // convert createdDate (YYYY-MM-DD) to ISO at UTC midnight
+    const createdAtIso = createdDate ? new Date(`${createdDate}T00:00:00Z`).toISOString() : undefined;
+    onUpload(selectedFile, selectedChild, imageDescription?.trim() || undefined, createdAtIso);
     onClose();
   };
 
@@ -202,6 +211,39 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="block mb-2 text-sm">Date de création (optionnel)</label>
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    <span>{createdDate || 'Sélectionner une date'}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={createdDate ? new Date(createdDate) : undefined}
+                    onSelect={(date: Date | undefined) => {
+                      if (!date) {
+                        setCreatedDate('');
+                        return;
+                      }
+                      const yyyy = date.getFullYear();
+                      const mm = String(date.getMonth() + 1).padStart(2, '0');
+                      const dd = String(date.getDate()).padStart(2, '0');
+                      setCreatedDate(`${yyyy}-${mm}-${dd}`);
+                    }}
+                    
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Si laissé vide, la date du jour sera utilisée.</p>
           </div>
           <div>
             <label className="block mb-2 text-sm">Description de l'image (optionnel)</label>

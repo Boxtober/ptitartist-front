@@ -7,7 +7,7 @@ import { MyChildrenPage, type Child } from './components/MyChildrenPage';
 import { ChildProfilePage } from './components/ChildProfilePage';
 import { SettingsPage } from './components/SettingsPage';
 import { FavoritesPage } from './components/FavoritesPage';
-import { TimelinePage } from './components/TimelinePage';
+// import { TimelinePage } from './components/TimelinePage';
 import Login from './components/Login';
 import Register from './components/Register';
 import type { Drawing } from './components/types';
@@ -19,7 +19,6 @@ import {
   logout,
   uploadImage,
   type ApiChild,
-  type ApiImage,
 } from './api/auth';
 import type { UploadChild } from './components/UploadArea';
 
@@ -40,42 +39,7 @@ function parseDrawingMeta(description?: string | null) {
   }
 }
 
-function mapApiImageToDrawing(image: ApiImage): Drawing {
-  const meta = parseDrawingMeta(image.description);
-  // Prefer explicit imageDescription (user-entered). If absent, only use image.description
-  // when it is not the internal metadata JSON (e.g. { childName, age }).
-  let imgDesc: string | null = null;
-  if (image.imageDescription) {
-    imgDesc = image.imageDescription;
-  } else if (image.description) {
-    // detect if description is the metadata JSON produced by the client
-    let isMeta = false;
-    try {
-      const parsed = JSON.parse(image.description as string);
-      if (parsed && (typeof parsed.childName === 'string' || typeof parsed.age !== 'undefined')) {
-        isMeta = true;
-      }
-    } catch {
-      // not JSON
-    }
-    if (!isMeta) imgDesc = image.description as string;
-  }
-  return {
-    id: image.id,
-    imageUrl: image.url,
-    childName: image.child?.firstName ?? meta.childName,
-    age: meta.age,
-    date: new Date(image.createdAt).toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    }),
-    rotation: (Math.random() * 6) - 3,
-    isFavorite: Boolean((image as any).isFavorite),
-    description: imgDesc,
-    imageDescription: image.imageDescription ?? null,
-  };
-}
+
 
 function calculateAgeFromBirthdate(birthDate?: string | null) {
   if (!birthDate) return 0;
@@ -110,6 +74,7 @@ const publicShowcaseDrawings: Drawing[] = [
     childName: 'Sophie',
     age: 6,
     date: 'April 15, 2026',
+    createdAt: new Date('2026-04-15T10:00:00Z').toISOString(),
     rotation: -2,
   },
   {
@@ -118,6 +83,7 @@ const publicShowcaseDrawings: Drawing[] = [
     childName: 'Lucas',
     age: 5,
     date: 'April 18, 2026',
+    createdAt: new Date('2026-04-18T10:00:00Z').toISOString(),
     rotation: 1.5,
   },
   {
@@ -126,6 +92,7 @@ const publicShowcaseDrawings: Drawing[] = [
     childName: 'Emma',
     age: 7,
     date: 'April 20, 2026',
+    createdAt: new Date('2026-04-20T10:00:00Z').toISOString(),
     rotation: -1,
   },
 ];
@@ -137,8 +104,41 @@ export default function App() {
 
   const refreshDrawings = useCallback(async () => {
     try {
-      const images = await getImages();
-      setDrawings(images.map(mapApiImageToDrawing));
+      // fetch both images and children so we can compute ages from child birthdates
+      const [images, childrenData] = await Promise.all([getImages(), getChildren().catch(() => [])]);
+      // helper to find child birthDate
+      const childById = (id?: string | null) => childrenData.find((c: any) => c.id === id);
+
+      const mapped = images.map((image) => {
+        const meta = parseDrawingMeta(image.description);
+        // determine child name
+        const childName = image.child?.firstName ?? meta.childName;
+        // age: prefer child's birthDate if available
+        let age = meta.age;
+        if (image.childId) {
+          const child = childById(image.childId);
+          if (child) age = calculateAgeFromBirthdate(child.birthDate);
+        }
+
+        return {
+          id: image.id,
+          imageUrl: image.url,
+          childName,
+          age,
+          createdAt: image.createdAt,
+          date: new Date(image.createdAt).toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+          }),
+          rotation: (Math.random() * 6) - 3,
+          isFavorite: Boolean((image as any).isFavorite),
+          description: image.imageDescription ?? image.description ?? null,
+          imageDescription: (image as any).imageDescription ?? null,
+        } as Drawing;
+      });
+
+      setDrawings(mapped);
     } catch (error: any) {
       if (error instanceof Error && error.message.includes('401')) {
         logout();
@@ -185,12 +185,15 @@ export default function App() {
     }
     void refreshDrawings();
     void refreshChildren();
+    const onUpdated = () => { void refreshDrawings(); };
+    window.addEventListener('images:updated', onUpdated);
+    return () => window.removeEventListener('images:updated', onUpdated);
   }, [isAuthenticated, refreshDrawings, refreshChildren]);
 
-  const handleUpload = async (file: File, child: UploadChild, imageDescription?: string) => {
+  const handleUpload = async (file: File, child: UploadChild, imageDescription?: string, createdAt?: string) => {
     try {
       const description = JSON.stringify({ childName: child.name, age: child.age });
-      await uploadImage(file, { description, childId: child.id, imageDescription });
+      await uploadImage(file, { description, childId: child.id, imageDescription, createdAt });
       await refreshDrawings();
       await refreshChildren();
       if (typeof window !== 'undefined') {
