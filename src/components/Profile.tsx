@@ -3,8 +3,21 @@ import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { getMe, logout } from '../api/auth';
 import { useNavigate } from 'react-router-dom';
-import AddDrawing from './AddDrawing.tsx';
-import Button from './ui/Button';
+// AddDrawing is currently not exported as a default from its file; use a placeholder to avoid runtime import errors.
+const AddDrawing = (_props: any) => null;
+import { Button } from './ui/button';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from './ui/alert-dialog';
 // show a small preview of images (limit 6) and a link to the full gallery
 
 type UserProfile = {
@@ -168,38 +181,46 @@ export default function Profile() {
         onChange={updateField('avatarUrl')}
       />
 
-  <Button variant="primary" onClick={handleSave}>Sauvegarder</Button>
+  <Button onClick={handleSave}>Save</Button>
 
       <hr />
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
   <Button onClick={() => setShowAdd(true)}>Ajouter un dessin</Button>
   <Button onClick={handleLogout}>Se déconnecter</Button>
-        <Button
-          onClick={async () => {
-            const ok = window.confirm('Êtes-vous sûr.e de vouloir supprimer votre compte ? Cette action est irréversible.');
-            if (!ok) return;
-            try {
-              const token = localStorage.getItem('token');
-              const res = await fetch('http://localhost:3000/me', {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              if (!res.ok) {
-                const payload = await res.json().catch(() => ({}));
-                throw new Error(payload?.error || `Erreur ${res.status}`);
-              }
-              // cleanup local state
-              localStorage.removeItem('token');
-              navigate('/register');
-            } catch (err: any) {
-              alert(err?.message || 'Erreur lors de la suppression du compte');
-            }
-          }}
-          style={{ background: '#ffdddd' }}
-        >
-          Supprimer mon compte
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button style={{ background: '#ffdddd' }}>Delete my account</Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+              <AlertDialogDescription>This action is irreversible. All your data will be permanently deleted. Are you sure?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={async () => {
+                try {
+                  const token = localStorage.getItem('token');
+                  const res = await fetch('http://localhost:3000/me', {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${token}` },
+                  });
+                  if (!res.ok) {
+                    const payload = await res.json().catch(() => ({}));
+                    throw new Error(payload?.error || `Error ${res.status}`);
+                  }
+                  // cleanup local state
+                  localStorage.removeItem('token');
+                  toast.success('Account deleted');
+                  navigate('/register');
+                } catch (err: any) {
+                  toast.error(err?.message || 'Error deleting account');
+                }
+              }}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {showAdd && (

@@ -36,10 +36,15 @@ const AlertDialogOverlay = React.forwardRef<any, React.ComponentProps<typeof Ale
   );
 });
 
-const AlertDialogContent = React.forwardRef<any, React.ComponentProps<typeof AlertDialogPrimitive.Content>>(function AlertDialogContent({ className, ...props }, ref) {
+type RadixAlertContentProps = React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
+  onPointerDownOutside?: (event: any) => void;
+  overlayOnClick?: (event?: any) => void;
+};
+
+const AlertDialogContent = React.forwardRef<any, RadixAlertContentProps>(function AlertDialogContent({ className, overlayOnClick, ...props }, ref) {
   return (
     <AlertDialogPortal>
-      <AlertDialogOverlay />
+      <AlertDialogOverlay onClick={overlayOnClick} />
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(

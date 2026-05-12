@@ -11,7 +11,7 @@ export type UploadChild = {
 
 interface UploadAreaProps {
   children: UploadChild[];
-  onUpload: (file: File, child: UploadChild) => void;
+  onUpload: (file: File, child: UploadChild, imageDescription?: string) => void;
   onCreateChild?: () => void;
   onClose: () => void;
 }
@@ -21,6 +21,7 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedChildId, setSelectedChildId] = useState('');
+  const [imageDescription, setImageDescription] = useState('');
 
   // If children are provided, default to the first child
   // when the component mounts or when the children list changes.
@@ -84,7 +85,7 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
       return;
     }
 
-    onUpload(selectedFile, selectedChild);
+    onUpload(selectedFile, selectedChild, imageDescription?.trim() || undefined);
     onClose();
   };
 
@@ -201,6 +202,16 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="block mb-2 text-sm">Description de l'image (optionnel)</label>
+            <textarea
+              value={imageDescription}
+              onChange={(e) => setImageDescription(e.target.value)}
+              placeholder="Par ex. 'Dessin du chien au parc'"
+              className="w-full px-4 py-3 rounded-2xl bg-input-background border border-border focus:border-primary focus:outline-none transition-colors h-24"
+            />
+            <p className="text-xs text-muted-foreground mt-2">Cette description sera enregistrée avec l'image et peut aider à la recherche.</p>
           </div>
         </div>
 

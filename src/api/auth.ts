@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 export type ApiUser = {
   id: string;
@@ -14,6 +14,7 @@ export type ApiImage = {
   id: string;
   url: string;
   description?: string | null;
+  imageDescription?: string | null;
   createdAt: string;
   userId: string;
   childId?: string | null;
@@ -125,19 +126,26 @@ export async function deleteChild(childId: string) {
 
 export async function uploadImage(
   file: File,
-  options?: { description?: string; childId?: string },
+  options?: { description?: string; childId?: string; imageDescription?: string },
 ) {
   const form = new FormData();
   form.append('file', file);
-  if (options?.description) form.append('description', options.description);
+  // If the caller provided an explicit imageDescription (user-entered), prefer it
+  // for the `description` field (some backends persist that field into the DB).
+  if (options?.imageDescription) {
+    form.append('imageDescription', options.imageDescription);
+    // Also set `description` so servers expecting that field will store it.
+    form.append('description', options.imageDescription);
+  } else if (options?.description) {
+    form.append('description', options.description);
+  }
   if (options?.childId) form.append('childId', options.childId);
 
+  // Do NOT send custom x-* headers by default to avoid CORS preflight failures.
+  // The server accepts these values from multipart form fields, so we attach them to FormData above.
   const res = await fetch(`${API_URL}/upload`, {
     method: 'POST',
-    headers: buildHeaders(
-      true,
-      options?.description ? { 'x-description': options.description } : {},
-    ),
+    headers: buildHeaders(true),
     body: form,
   });
   return parseResponse<ApiImage>(res);
@@ -154,11 +162,13 @@ export async function deleteImage(imageId: string) {
 
   if (!res.ok) {
     console.warn(`deleteImage: primary DELETE ${url} returned ${res.status}`);
+    // Read the response body once and keep it for later diagnostics
+    let primaryText: string | undefined = undefined;
     try {
-      const text = await res.text();
-      console.warn('deleteImage: response body:', text);
+      primaryText = await res.text();
+      console.warn('deleteImage: primary response body:', primaryText);
     } catch (e) {
-      // ignore
+      console.warn('deleteImage: failed to read primary response body', e);
     }
 
     const fallback = `${API_URL}/upload/${imageId}`;
@@ -169,7 +179,30 @@ export async function deleteImage(imageId: string) {
     });
     if (res2.ok) return parseResponse<{ success: boolean; deleted: any }>(res2);
 
-    return parseResponse<{ success: boolean; deleted: any }>(res);
+    // Read fallback response body too for better error messages
+    let fallbackText: string | undefined = undefined;
+    try {
+      fallbackText = await res2.text();
+      console.warn('deleteImage: fallback response body:', fallbackText);
+    } catch (e) {
+      console.warn('deleteImage: failed to read fallback response body', e);
+    }
+
+    // Prefer a parsed JSON error message from primary, then fallback, then raw texts, then status
+    const tryExtract = (text?: string) => {
+      if (!text) return undefined;
+      try {
+        const p = JSON.parse(text);
+        return p?.error ?? p?.message ?? undefined;
+      } catch {
+        return text;
+      }
+    };
+
+    const primaryMsg = tryExtract(primaryText);
+    const fallbackMsg = tryExtract(fallbackText);
+    const message = primaryMsg ?? fallbackMsg ?? `Erreur HTTP ${res.status}`;
+    throw new Error(message);
   }
   return parseResponse<{ success: boolean; deleted: any }>(res);
 }
@@ -255,6 +288,17 @@ export async function deleteAccount() {
     headers: buildHeaders(true),
   });
   return parseResponse<{ success: boolean }>(res);
+}
+
+// Update current user profile
+export async function updateMe(payload: { firstName?: string | null; lastName?: string | null; email?: string | null; age?: number | null }) {
+  const res = await fetch(`${API_URL}/profile`, {
+    method: 'PUT',
+    headers: buildHeaders(true, { 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse<ApiUser>(res);
 }
 
 // Avatar upload/delete

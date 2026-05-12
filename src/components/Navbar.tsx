@@ -17,7 +17,7 @@ export function Navbar({
   const navItems = isAuthenticated
     ? [
         { label: 'Gallery', path: '/' },
-        { label: 'Timeline', path: '/timeline' },
+        // { label: 'Timeline', path: '/timeline' },
         { label: 'My Children', path: '/children' },
         { label: 'Favorites', path: '/favorites' },
         { label: 'Settings', path: '/settings' },

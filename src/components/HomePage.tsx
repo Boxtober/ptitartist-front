@@ -9,7 +9,8 @@ import { useState } from 'react';
 interface HomePageProps {
   drawings: Drawing[];
   children: UploadChild[];
-  onUpload: (file: File, child: UploadChild) => void;
+  // onUpload accepts an optional imageDescription string
+  onUpload: (file: File, child: UploadChild, imageDescription?: string) => void;
   onImageDeleted?: (imageId: string) => void;
   onToggleFavorite?: (imageId: string, isFav: boolean) => void;
   canUpload?: boolean;

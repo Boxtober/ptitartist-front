@@ -46,7 +46,7 @@ export function ArtworkDetailModal({ drawing, onClose, onDeleted, onFavoriteTogg
           <img
             src={drawing.imageUrl}
             alt={`Drawing by ${drawing.childName}`}
-            className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl"
+            className="max-w-full max-h-[70vh] object-contain rounded-2xl"
           />
         </div>
 
@@ -90,6 +90,13 @@ export function ArtworkDetailModal({ drawing, onClose, onDeleted, onFavoriteTogg
                 </span>
               </div>
             </div>
+
+            {(drawing.imageDescription || drawing.description) && (
+              <div className="p-4 rounded-2xl bg-white/80 border border-border">
+                <p className="text-xs text-muted-foreground">Description</p>
+                <p className="mt-1 text-sm">{drawing.imageDescription ?? drawing.description}</p>
+              </div>
+            )}
 
             <div className="p-4 rounded-2xl bg-muted/50 flex items-center gap-3">
               <Calendar className="w-5 h-5 text-muted-foreground" />

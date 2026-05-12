@@ -42,6 +42,24 @@ function parseDrawingMeta(description?: string | null) {
 
 function mapApiImageToDrawing(image: ApiImage): Drawing {
   const meta = parseDrawingMeta(image.description);
+  // Prefer explicit imageDescription (user-entered). If absent, only use image.description
+  // when it is not the internal metadata JSON (e.g. { childName, age }).
+  let imgDesc: string | null = null;
+  if (image.imageDescription) {
+    imgDesc = image.imageDescription;
+  } else if (image.description) {
+    // detect if description is the metadata JSON produced by the client
+    let isMeta = false;
+    try {
+      const parsed = JSON.parse(image.description as string);
+      if (parsed && (typeof parsed.childName === 'string' || typeof parsed.age !== 'undefined')) {
+        isMeta = true;
+      }
+    } catch {
+      // not JSON
+    }
+    if (!isMeta) imgDesc = image.description as string;
+  }
   return {
     id: image.id,
     imageUrl: image.url,
@@ -54,6 +72,8 @@ function mapApiImageToDrawing(image: ApiImage): Drawing {
     }),
     rotation: (Math.random() * 6) - 3,
     isFavorite: Boolean((image as any).isFavorite),
+    description: imgDesc,
+    imageDescription: image.imageDescription ?? null,
   };
 }
 
@@ -167,10 +187,10 @@ export default function App() {
     void refreshChildren();
   }, [isAuthenticated, refreshDrawings, refreshChildren]);
 
-  const handleUpload = async (file: File, child: UploadChild) => {
+  const handleUpload = async (file: File, child: UploadChild, imageDescription?: string) => {
     try {
       const description = JSON.stringify({ childName: child.name, age: child.age });
-      await uploadImage(file, { description, childId: child.id });
+      await uploadImage(file, { description, childId: child.id, imageDescription });
       await refreshDrawings();
       await refreshChildren();
       if (typeof window !== 'undefined') {
@@ -285,10 +305,10 @@ export default function App() {
               </>
             }
           />
-          <Route
+          {/* <Route
             path="/timeline"
             element={isAuthenticated ? <><Navbar isAuthenticated={isAuthenticated} onLogoutClick={handleLogout} /><TimelinePage /></> : <Navigate to="/login" replace />}
-          />
+          /> */}
           <Route
             path="/children"
             element={

@@ -5,5 +5,7 @@ export interface Drawing {
   age: number;
   date: string;
   rotation: number;
+  description?: string | null;
+  imageDescription?: string | null;
   isFavorite?: boolean;
 }
