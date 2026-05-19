@@ -56,31 +56,33 @@ export function FavoritesPage({ drawings = [], onToggleFavorite, onImageDeleted 
             </motion.div>
           </div>
 
-          {/* Recent uploads section */}
-          <div className="max-w-7xl mx-auto mt-12">
-            <h2 className="font-[var(--font-family-heading)] text-2xl mb-4">Recent Uploads</h2>
-            <div onClick={(e) => {
-              const target = e.target as HTMLElement;
-              const card = target.closest('[data-drawing-id]');
-              if (card) {
-                const drawingId = card.getAttribute('data-drawing-id');
-                const drawing = drawings.find(d => d.id === drawingId);
-                if (drawing) setSelectedDrawing(drawing);
-              }
-            }}>
-              <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 600: 2, 900: 3, 1200: 4 }}>
-                <Masonry columnsCount={4} gutter="12px">
-                  {drawings
-                    .slice()
-                    .sort((a, b) => (new Date(b.date).getTime() - new Date(a.date).getTime()))
-                    .slice(0, 6)
-                    .map((d) => (
-                      <SmallGalleryCard key={d.id} drawing={d} />
-                    ))}
-                </Masonry>
-              </ResponsiveMasonry>
+          {/* Recent uploads section (only when we have drawings) */}
+          {drawings && drawings.length > 0 && (
+            <div className="max-w-7xl mx-auto mt-12">
+              <h2 className="font-[var(--font-family-heading)] text-2xl mb-4">Recent Uploads</h2>
+              <div onClick={(e) => {
+                const target = e.target as HTMLElement;
+                const card = target.closest('[data-drawing-id]');
+                if (card) {
+                  const drawingId = card.getAttribute('data-drawing-id');
+                  const drawing = drawings.find(d => d.id === drawingId);
+                  if (drawing) setSelectedDrawing(drawing);
+                }
+              }}>
+                <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 600: 2, 900: 3, 1200: 4 }}>
+                  <Masonry columnsCount={4} gutter="12px">
+                    {drawings
+                      .slice()
+                      .sort((a, b) => (new Date(b.date).getTime() - new Date(a.date).getTime()))
+                      .slice(0, 6)
+                      .map((d) => (
+                        <SmallGalleryCard key={d.id} drawing={d} />
+                      ))}
+                  </Masonry>
+                </ResponsiveMasonry>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Detail Modal */}

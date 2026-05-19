@@ -49,6 +49,7 @@ export function ChildProfilePage() {
       date: new Date(image.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
       rotation: (Math.random() * 6) - 3,
       isFavorite: Boolean((image as any).isFavorite),
+      createdAt: image.createdAt,
     };
   }
 
