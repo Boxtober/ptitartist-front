@@ -1,8 +1,13 @@
-import { motion } from 'motion/react';
-import { Plus, Palette, Calendar } from 'lucide-react';
-import { DeleteChildButton } from './DeleteChildButton';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { motion } from "motion/react";
+import { Plus, Palette, Calendar } from "lucide-react";
+import { DeleteChildButton } from "./DeleteChildButton";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Link } from "react-router-dom";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs from "dayjs";
 
 export interface Child {
   id: string;
@@ -19,20 +24,35 @@ type MyChildrenPageProps = {
   onDeleteChild: (childId: string) => Promise<void>;
 };
 
-export function MyChildrenPage({ children, onAddChild, onDeleteChild }: MyChildrenPageProps) {
+export function MyChildrenPage({
+  children,
+  onAddChild,
+  onDeleteChild,
+}: MyChildrenPageProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newChildName, setNewChildName] = useState('');
-  const [newChildBirthdate, setNewChildBirthdate] = useState('');
+  const [newChildName, setNewChildName] = useState("");
+  const [newChildBirthdate, setNewChildBirthdate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddChild = async () => {
     if (!newChildName || !newChildBirthdate) return;
+    // validate birthdate: cannot be in the future and age must be <= 24
+    const picked = dayjs(newChildBirthdate);
+    if (picked.isAfter(dayjs())) {
+      toast.error("The birthdate cannot be in the future");
+      return;
+    }
+    const age = dayjs().diff(picked, "year");
+    if (age > 24) {
+      toast.error("The child must be 24 years old or younger");
+      return;
+    }
     setIsSubmitting(true);
     try {
       await onAddChild({ name: newChildName, birthdate: newChildBirthdate });
       setShowAddForm(false);
-      setNewChildName('');
-      setNewChildBirthdate('');
+      setNewChildName("");
+      setNewChildBirthdate("");
     } finally {
       setIsSubmitting(false);
     }
@@ -62,7 +82,11 @@ export function MyChildrenPage({ children, onAddChild, onDeleteChild }: MyChildr
             >
               {/* Delete button placed absolutely to avoid being inside the Link */}
               <div className="absolute top-4 right-4 z-50">
-                <DeleteChildButton childId={child.id} childName={child.name} onDelete={onDeleteChild} />
+                <DeleteChildButton
+                  childId={child.id}
+                  childName={child.name}
+                  onDelete={onDeleteChild}
+                />
               </div>
 
               <Link to={`/child/${child.id}`} className="block">
@@ -137,12 +161,78 @@ export function MyChildrenPage({ children, onAddChild, onDeleteChild }: MyChildr
                 </div>
                 <div>
                   <label className="block text-sm mb-2">Birthdate</label>
-                  <input
-                    type="date"
-                    value={newChildBirthdate}
-                    onChange={(e) => setNewChildBirthdate(e.target.value)}
-                    className="w-full px-4 py-2 rounded-2xl bg-input-background border border-border focus:border-primary focus:outline-none"
-                  />
+                  <div className="flex items-center gap-2">
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                      <DatePicker
+                        value={
+                          newChildBirthdate ? dayjs(newChildBirthdate) : null
+                        }
+                        onChange={(newValue) => {
+                          if (!newValue) {
+                            setNewChildBirthdate("");
+                            return;
+                          }
+                          const val = (newValue as any).format("YYYY-MM-DD");
+                          setNewChildBirthdate(val);
+                        }}
+                        slotProps={{
+                          yearButton: {
+                            sx: {
+                              fontFamily: "Nunito, sans-serif !important",
+                              fontSize: "12px !important",
+                              "&.Mui-selected": {
+                                backgroundColor: "#FFB7C5 !important",
+                                color: "#3D3250 !important",
+                                fontFamily: "Nunito, sans-serif !important",
+                              },
+                              "&.Mui-selected:hover": {
+                                backgroundColor: "#C9B8F0 !important",
+                              },
+                              "&.Mui-selected:focus": {
+                                backgroundColor: "#FFB7C5 !important",
+                              },
+                            },
+                          },
+                          textField: {
+                            sx: {
+                              "& .MuiPickersOutlinedInput-sectionsContainer": {
+                                fontFamily: "Nunito, sans-serif !important",
+                              },
+
+                              "& .MuiPickersSectionList-section": {
+                                fontFamily: "Nunito, sans-serif !important",
+                              },
+
+                              "& .MuiPickersSectionList-sectionContent": {
+                                fontFamily: "Nunito, sans-serif !important",
+                              },
+                            },
+                          },
+                          day: {
+                            sx: {
+                              fontFamily: "Nunito, sans-serif !important",
+                              "&.Mui-selected": {
+                                backgroundColor: "#FFB7C5 !important",
+                                color: "#3D3250 !important",
+                                fontFamily: "Nunito, sans-serif !important",
+                              },
+                              "&.Mui-selected:hover": {
+                                backgroundColor: "#C9B8F0 !important",
+                              },
+                              "&.Mui-selected:focus": {
+                                backgroundColor: "#FFB7C5 !important",
+                              },
+
+                              "&.MuiPickersDay-today:not(.Mui-selected)": {
+                                border: "1.5px solid #FFB7C5 !important",
+                                color: "#3D3250 !important",
+                              },
+                            },
+                          },
+                        }}
+                      />
+                    </LocalizationProvider>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -150,7 +240,7 @@ export function MyChildrenPage({ children, onAddChild, onDeleteChild }: MyChildr
                     disabled={isSubmitting}
                     className="flex-1 py-2 rounded-full bg-primary hover:bg-primary/90 transition-colors"
                   >
-                    {isSubmitting ? 'Saving...' : 'Add'}
+                    {isSubmitting ? "Saving..." : "Add"}
                   </button>
                   <button
                     onClick={() => setShowAddForm(false)}

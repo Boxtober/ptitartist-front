@@ -1,14 +1,23 @@
-import { motion } from 'motion/react';
-import { X, Download, Heart, Calendar as CalendarIcon, User } from 'lucide-react';
-import type { Drawing } from './types';
-import { useState } from 'react';
-import { DeleteImageButton } from './DeleteImageButton';
-import { toast } from 'sonner';
-import { addFavorite, removeFavorite } from '../api/auth';
-import { updateImage } from '../api/auth';
-import { useEffect } from 'react';
-import { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
-import { Calendar } from './ui/calendar';
+import { motion } from "motion/react";
+import {
+  X,
+  Download,
+  Heart,
+  Calendar as CalendarIcon,
+  User,
+} from "lucide-react";
+import type { Drawing } from "./types";
+import { useState } from "react";
+import { DeleteImageButton } from "./DeleteImageButton";
+import { toast } from "sonner";
+import { addFavorite, removeFavorite } from "../api/auth";
+import { updateImage } from "../api/auth";
+import { useEffect } from "react";
+// Popover/calendar replaced by MUI DatePicker in this file
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs from "dayjs";
 
 interface ArtworkDetailModalProps {
   drawing: Drawing;
@@ -17,8 +26,15 @@ interface ArtworkDetailModalProps {
   onFavoriteToggled?: (imageId: string, isFav: boolean) => void;
 }
 
-export function ArtworkDetailModal({ drawing, onClose, onDeleted, onFavoriteToggled }: ArtworkDetailModalProps) {
-  const [isFavorite, setIsFavorite] = useState<boolean>(Boolean(drawing.isFavorite));
+export function ArtworkDetailModal({
+  drawing,
+  onClose,
+  onDeleted,
+  onFavoriteToggled,
+}: ArtworkDetailModalProps) {
+  const [isFavorite, setIsFavorite] = useState<boolean>(
+    Boolean(drawing.isFavorite),
+  );
   const [editingDate, setEditingDate] = useState<string>(() => {
     try {
       // convert ISO to local datetime-local value
@@ -30,7 +46,7 @@ export function ArtworkDetailModal({ drawing, onClose, onDeleted, onFavoriteTogg
       return new Date().toISOString().slice(0, 16);
     }
   });
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  // popover state removed; using inline MUI DatePicker
 
   useEffect(() => {
     setEditingDate(() => {
@@ -47,20 +63,20 @@ export function ArtworkDetailModal({ drawing, onClose, onDeleted, onFavoriteTogg
 
   const handleDownload = () => {
     // Create a download link
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = drawing.imageUrl;
-    link.download = `${drawing.childName}-${drawing.age}-${drawing.date.replace(/,/g, '')}.jpg`;
+    link.download = `${drawing.childName}-${drawing.age}-${drawing.date.replace(/,/g, "")}.jpg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Helper: detect whether a description string is the internal metadata JSON
   const isInternalMeta = (text?: string | null) => {
     if (!text) return false;
     try {
       const p = JSON.parse(text);
-      if (p && typeof p === 'object' && ('childName' in p || 'age' in p)) return true;
+      if (p && typeof p === "object" && ("childName" in p || "age" in p))
+        return true;
       return false;
     } catch {
       return false;
@@ -132,67 +148,114 @@ export function ArtworkDetailModal({ drawing, onClose, onDeleted, onFavoriteTogg
               </div>
             </div>
 
-            {(drawing.imageDescription || (drawing.description && !isInternalMeta(drawing.description))) && (
+            {(drawing.imageDescription ||
+              (drawing.description &&
+                !isInternalMeta(drawing.description))) && (
               <div className="p-4 rounded-2xl bg-white/80 border border-border">
                 <p className="text-xs text-muted-foreground">Description</p>
-                <p className="mt-1 text-sm">{drawing.imageDescription ?? drawing.description}</p>
+                <p className="mt-1 text-sm">
+                  {drawing.imageDescription ?? drawing.description}
+                </p>
               </div>
             )}
 
-            <div className="p-4 rounded-2xl bg-muted/50 flex items-center gap-3">
-              <CalendarIcon className="w-5 h-5 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Created on</p>
-                {/* Display a single human-friendly date: either the editingDate (if present) or the image createdAt or today */}
-                {(() => {
-                  // editingDate is local datetime-local (YYYY-MM-DDTHH:MM)
-                  const dateToShow = editingDate ? new Date(editingDate) : new Date(drawing.createdAt || new Date().toISOString());
-                  const formatted = dateToShow.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
-                  return (
-                    <div className="flex items-center gap-3">
-                      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                        <PopoverTrigger asChild>
-                          <button data-slot="popover-trigger" className="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background text-foreground hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 has-[>svg]:px-3 w-full justify-between" type="button">
-                            <span>{editingDate ? editingDate.slice(0,10) : formatted.split(' ')[0]}</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-2">
-                          <Calendar
-                            mode="single"
-                            selected={editingDate ? new Date(editingDate.slice(0, 10)) : (drawing.createdAt ? new Date(drawing.createdAt) : new Date())}
-                            onSelect={async (date: Date | undefined) => {
-                              if (!date) return;
-                              const yyyy = date.getFullYear();
-                              const mm = String(date.getMonth() + 1).padStart(2, '0');
-                              const dd = String(date.getDate()).padStart(2, '0');
-                              // build a local datetime at midnight (no time UI)
-                              const newLocal = `${yyyy}-${mm}-${dd}T00:00`;
-                              setEditingDate(newLocal);
-                              try {
-                                // interpret local as local timezone and convert to ISO UTC
-                                const local = new Date(newLocal);
-                                const iso = new Date(local.getTime() - (local.getTimezoneOffset() * 60000)).toISOString();
-                                await updateImage(drawing.id, { createdAt: iso });
-                                toast.success('Date mise à jour');
-                                window.dispatchEvent(new CustomEvent('images:updated'));
-                              } catch (err: any) {
-                                toast.error(err?.message ?? 'Erreur lors de la mise à jour');
-                              }
-                              // close popover after selection
-                              setPopoverOpen(false);
-                            }}
-                            
-                          />
-                        </PopoverContent>
-                      </Popover>
+            <div className="p-4 rounded-2xl bg-muted/50 flex items-center gap-3 w-full">
+              <div className="w-full">
+                <p className="text-xs text-muted-foreground pb-2">Created on</p>
+                <div className="w-full">
+                  <div className="flex items-center gap-2">
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                      <DatePicker
+                        value={
+                          editingDate
+                            ? dayjs(editingDate.slice(0, 10))
+                            : dayjs(drawing.createdAt ?? undefined)
+                        }
+                        onChange={async (newValue) => {
+                          if (!newValue) return;
+                          const val = (newValue as any).format("YYYY-MM-DD");
 
-                      {/* No time input: date-only. */}
-                    </div>
-                  );
-                })()}
+                          const newLocal = `${val}T00:00`;
+
+                          try {
+                            const local = new Date(newLocal);
+                            const iso = new Date(
+                              local.getTime() -
+                                local.getTimezoneOffset() * 60000,
+                            ).toISOString();
+                            await updateImage(drawing.id, { createdAt: iso });
+                            setEditingDate(newLocal);
+                            toast.success("Date updated");
+                            window.dispatchEvent(
+                              new CustomEvent("images:updated"),
+                            );
+                          } catch (err: any) {
+                            toast.error(
+                              err?.message ??
+                                "Error occurred while updating the date",
+                            );
+                          }
+                        }}
+                        slotProps={{
+                          yearButton: {
+                            sx: {
+                              fontFamily: "Nunito, sans-serif !important",
+                              fontSize: "12px !important",
+                              "&.Mui-selected": {
+                                backgroundColor: "#FFB7C5 !important",
+                                color: "#3D3250 !important",
+                                fontFamily: "Nunito, sans-serif !important",
+                              },
+                              "&.Mui-selected:hover": {
+                                backgroundColor: "#C9B8F0 !important",
+                              },
+                              "&.Mui-selected:focus": {
+                                backgroundColor: "#FFB7C5 !important",
+                              },
+                            },
+                          },
+                          textField: {
+                            sx: {
+                              "& .MuiPickersOutlinedInput-sectionsContainer": {
+                                fontFamily: "Nunito, sans-serif !important",
+                              },
+
+                              "& .MuiPickersSectionList-section": {
+                                fontFamily: "Nunito, sans-serif !important",
+                              },
+
+                              "& .MuiPickersSectionList-sectionContent": {
+                                fontFamily: "Nunito, sans-serif !important",
+                              },
+                            },
+                          },
+                          day: {
+                            sx: {
+                              fontFamily: "Nunito, sans-serif !important",
+                              "&.Mui-selected": {
+                                backgroundColor: "#FFB7C5 !important",
+                                color: "#3D3250 !important",
+                                fontFamily: "Nunito, sans-serif !important",
+                              },
+                              "&.Mui-selected:hover": {
+                                backgroundColor: "#C9B8F0 !important",
+                              },
+                              "&.Mui-selected:focus": {
+                                backgroundColor: "#FFB7C5 !important",
+                              },
+
+                              "&.MuiPickersDay-today:not(.Mui-selected)": {
+                                border: "1.5px solid #FFB7C5 !important",
+                                color: "#3D3250 !important",
+                              },
+                            },
+                          },
+                        }}
+                        maxDate={dayjs()}
+                      />
+                    </LocalizationProvider>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -205,29 +268,33 @@ export function ArtworkDetailModal({ drawing, onClose, onDeleted, onFavoriteTogg
                 setIsFavorite(!prev);
                 try {
                   if (!prev) {
-                    toast('Ajout aux favoris...');
+                    toast("Adding to favorites...");
                     await addFavorite(drawing.id);
-                    toast.success('Ajouté aux favoris');
+                    toast.success("Added to favorites");
                   } else {
-                    toast('Suppression des favoris...');
+                    toast("Removing from favorites...");
                     await removeFavorite(drawing.id);
-                    toast.success('Retiré des favoris');
+                    toast.success("Removed from favorites");
                   }
                   // notify parent about the change
                   onFavoriteToggled?.(drawing.id, !prev);
                 } catch (err: any) {
                   setIsFavorite(prev); // revert
-                  toast.error(err?.message ?? "Erreur lors de l'opération");
+                  toast.error(
+                    err?.message ?? "Error occurred while toggling favorite",
+                  );
                 }
               }}
               className={`w-full py-3 rounded-full border-2 transition-all flex items-center justify-center gap-2 ${
                 isFavorite
-                  ? 'bg-primary border-primary'
-                  : 'border-border hover:border-primary/50'
+                  ? "bg-primary border-primary"
+                  : "border-border hover:border-primary/50"
               }`}
             >
-              <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
-              <span>{isFavorite ? 'Favorited' : 'Add to Favorites'}</span>
+              <Heart
+                className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`}
+              />
+              <span>{isFavorite ? "Favorited" : "Add to Favorites"}</span>
             </button>
 
             <button
@@ -241,7 +308,6 @@ export function ArtworkDetailModal({ drawing, onClose, onDeleted, onFavoriteTogg
             <DeleteImageButton
               imageId={drawing.id}
               onDeleted={() => {
-                // close modal after deletion and notify parent to remove the image from state
                 onClose();
                 onDeleted?.(drawing.id);
               }}

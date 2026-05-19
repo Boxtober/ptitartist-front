@@ -1,3 +1,12 @@
+
+
+
+.plusBtn {
+  color: red;
+  stroke: green;
+  outline-color: green;
+}
+
 /* =============================================================
    MUI DatePicker — overrides globaux
    Toujours utiliser les classes stables .MuiXxx, jamais .css-xxx
@@ -19,7 +28,7 @@
   border-radius: 12px !important;
   padding: 0 12px !important;
   height: 40px;
-  border: 1.5px solid #C9B8F0;
+  border: 1.5px solid #00000014; 
   transition: border-color .2s ease, box-shadow .2s ease;
 }
 
@@ -98,7 +107,7 @@
 .MuiPickersPopper-root .MuiPaper-root {
   font-family: 'Nunito', sans-serif !important;
   border-radius: 20px !important;
-  border: 1.5px solid #C9B8F0;
+  border: 1.5px solid #00000014; 
   box-shadow: 0 12px 40px rgba(180, 150, 220, 0.2) !important;
   overflow: hidden;
 }
@@ -151,7 +160,7 @@
 
 /* Aujourd'hui (non sélectionné) */
 .MuiPickersDay-today:not(.Mui-selected) {
-  border: 1.5px solid #C9B8F0 !important;
+    border: 1.5px solid #00000014; 
   color: #3D3250 !important;
 }
 

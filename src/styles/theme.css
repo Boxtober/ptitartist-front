@@ -1,8 +1,30 @@
 @custom-variant dark (&:is(.dark *));
 
+/*
+  To use the "Neulis Neue Medium" font, place the font files in:
+    src/assets/fonts/NeulisNeue-Medium.woff2
+    src/assets/fonts/NeulisNeue-Medium.woff
+    src/assets/fonts/NeulisNeue-Medium.ttf
+
+  If you don't have the files locally, obtain them from your font vendor
+  and copy them to the paths above. The @font-face below will load them.
+*/
+
+@font-face {
+  font-family: 'Neulis Neue Medium';
+  /* Prefer an installed local copy if present on the user's system */
+  src: local('Neulis Neue Medium'), local('NeulisNeue-Medium'),
+       url('../assets/fonts/NeulisNeue-Medium.woff2') format('woff2'),
+       url('../assets/fonts/NeulisNeue-Medium.woff') format('woff'),
+       url('../assets/fonts/NeulisNeue-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --font-size: 16px;
-  --font-family-base: 'Nunito', sans-serif;
+  --font-family-base: 'Neulis Neue Medium', 'Nunito', sans-serif;
   --font-family-heading: 'Cabin Sketch', cursive;
 
   /* Pastel color palette */

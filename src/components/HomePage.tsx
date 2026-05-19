@@ -1,10 +1,9 @@
-import { HeroSection } from './HeroSection';
-import { Gallery } from './Gallery';
-import { FloatingActionButton } from './FloatingActionButton';
-import { UploadArea, type UploadChild } from './UploadArea';
-import { ArtworkDetailModal } from './ArtworkDetailModal';
-import type { Drawing } from './types';
-import { useState } from 'react';
+import { HeroSection } from "./HeroSection";
+import { Gallery } from "./Gallery";
+import { UploadArea, type UploadChild } from "./UploadArea";
+import { ArtworkDetailModal } from "./ArtworkDetailModal";
+import type { Drawing } from "./types";
+import { useState, useEffect } from "react";
 
 interface HomePageProps {
   drawings: Drawing[];
@@ -29,6 +28,12 @@ export function HomePage({
   const [showUpload, setShowUpload] = useState(false);
   const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
 
+  useEffect(() => {
+    const handler = () => setShowUpload(true);
+    window.addEventListener("upload:open", handler);
+    return () => window.removeEventListener("upload:open", handler);
+  }, []);
+
   return (
     <>
       <HeroSection
@@ -39,14 +44,16 @@ export function HomePage({
           }
           onGuestActionClick?.();
         }}
-        primaryActionLabel={canUpload ? 'Upload a drawing' : 'Se connecter pour publier'}
+        primaryActionLabel={
+          canUpload ? "Upload a drawing" : "Se connecter pour publier"
+        }
       />
       <div
         onClick={(e) => {
           const target = e.target as HTMLElement;
-          const card = target.closest('[data-drawing-id]');
+          const card = target.closest("[data-drawing-id]");
           if (card) {
-            const drawingId = card.getAttribute('data-drawing-id');
+            const drawingId = card.getAttribute("data-drawing-id");
             const drawing = drawings.find((d) => d.id === drawingId);
             if (drawing) setSelectedDrawing(drawing);
           }
@@ -54,7 +61,7 @@ export function HomePage({
       >
         <Gallery drawings={drawings} />
       </div>
-      {canUpload && <FloatingActionButton onClick={() => setShowUpload(true)} />}
+      {/* FloatingActionButton is rendered globally in App.tsx */}
 
       {canUpload && showUpload && (
         <UploadArea
@@ -63,8 +70,8 @@ export function HomePage({
           onClose={() => setShowUpload(false)}
           onCreateChild={() => {
             setShowUpload(false);
-            // navigate to My Children page — simple approach using location
-            window.location.href = '/my-children';
+            // navigate to children management page
+            window.location.href = "/children";
           }}
         />
       )}

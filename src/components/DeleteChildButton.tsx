@@ -1,21 +1,37 @@
-import { useState } from 'react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
-import { toast } from 'sonner';
-import { Trash2 } from 'lucide-react';
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
+import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 
-export function DeleteChildButton({ childId, childName, onDelete }: { childId: string; childName: string; onDelete: (id: string) => Promise<void> }) {
+export function DeleteChildButton({
+  childId,
+  childName,
+  onDelete,
+}: {
+  childId: string;
+  childName: string;
+  onDelete: (id: string) => Promise<void>;
+}) {
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
     setLoading(true);
-    console.log('DeleteChildButton: starting delete for', childId);
-    toast('Suppression en cours...');
+    console.log("DeleteChildButton: starting delete for", childId);
     try {
       await onDelete(childId);
-      toast.success('Enfant supprimé');
     } catch (err: any) {
-      console.error('Delete child failed', err);
-      toast.error(err?.message ?? 'Erreur lors de la suppression');
+      console.error("Delete child failed", err);
+      toast.error(err?.message ?? "Error occurred while deleting the child");
     } finally {
       setLoading(false);
     }
@@ -26,13 +42,12 @@ export function DeleteChildButton({ childId, childName, onDelete }: { childId: s
       <AlertDialogTrigger asChild>
         <button
           type="button"
-          // stop propagation on multiple event types so the parent Link doesn't navigate
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full hover:bg-destructive/10 flex items-center justify-center cursor-pointer pointer-events-auto z-50"
-          title={`Supprimer ${childName}`}
-          aria-label={`Supprimer ${childName}`}
+          title={`Delete ${childName}`}
+          aria-label={`Delete ${childName}`}
         >
           <Trash2 className="w-4 h-4 text-destructive" />
         </button>
@@ -40,15 +55,18 @@ export function DeleteChildButton({ childId, childName, onDelete }: { childId: s
 
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Êtes-vous sûr·e de vouloir supprimer {childName} ?</AlertDialogTitle>
+          <AlertDialogTitle>
+            Are you sure you want to delete {childName}?
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            Les dessins relatifs à cet enfant resteront visibles dans votre galerie. Cette action supprimera définitivement le profil de l'enfant.
+            The artworks related to this child will remain visible in your
+            gallery. This action will permanently delete the child's profile.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Annuler</AlertDialogCancel>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={handleConfirm} disabled={loading}>
-            {loading ? 'Suppression...' : 'Supprimer'}
+            {loading ? "Deletion..." : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

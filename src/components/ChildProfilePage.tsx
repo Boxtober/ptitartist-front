@@ -1,20 +1,57 @@
-import { motion } from 'motion/react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, Cake, TrendingUp, Download } from 'lucide-react';
+import { motion } from "motion/react";
+import { useParams, Link } from "react-router-dom";
+import { ArrowLeft, Calendar, Cake, TrendingUp, Download } from "lucide-react";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
-import { GalleryCard } from './GalleryCard';
-import type { Drawing } from './types';
-import { useState, useEffect } from 'react';
-import { ArtworkDetailModal } from './ArtworkDetailModal';
-import { getChildren, getImages, type ApiImage } from '../api/auth';
-import { toast } from 'sonner';
+import { GalleryCard } from "./GalleryCard";
+import type { Drawing } from "./types";
+import { useState, useEffect, useMemo } from "react";
+import { ArtworkDetailModal } from "./ArtworkDetailModal";
+import { getChildren, getImages, type ApiImage } from "../api/auth";
+import { toast } from "sonner";
 
 export function ChildProfilePage() {
   const { childId } = useParams();
   const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
-  const [childData, setChildData] = useState<{ id: string; name: string; birthdate?: string | null; avatarColor?: string } | null>(null);
+  const [childData, setChildData] = useState<{
+    id: string;
+    name: string;
+    birthdate?: string | null;
+    avatarColor?: string;
+  } | null>(null);
   const [childDrawings, setChildDrawings] = useState<Drawing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<string>("All Time");
+
+  const filteredDrawings = useMemo(() => {
+    const now = new Date();
+    if (activeFilter === "All Time") return childDrawings;
+    if (activeFilter === "This Month") {
+      return childDrawings.filter((d) => {
+        const dt = new Date(d.createdAt || d.date);
+        return (
+          dt.getMonth() === now.getMonth() &&
+          dt.getFullYear() === now.getFullYear()
+        );
+      });
+    }
+    if (activeFilter === "Last 3 Months") {
+      return childDrawings.filter((d) => {
+        const dt = new Date(d.createdAt || d.date);
+        const monthsDiff =
+          (now.getFullYear() - dt.getFullYear()) * 12 +
+          (now.getMonth() - dt.getMonth());
+        return monthsDiff >= 0 && monthsDiff < 3;
+      });
+    }
+    const year = Number(activeFilter);
+    if (!Number.isNaN(year)) {
+      return childDrawings.filter((d) => {
+        const dt = new Date(d.createdAt || d.date);
+        return dt.getFullYear() === year;
+      });
+    }
+    return childDrawings;
+  }, [childDrawings, activeFilter]);
 
   function calculateAgeFromBirthdate(birthDate?: string | null) {
     if (!birthDate) return 0;
@@ -30,11 +67,14 @@ export function ChildProfilePage() {
 
   function mapApiImageToDrawing(image: ApiImage): Drawing {
     // try to parse metadata if any
-    let childName = image.child?.firstName ?? 'Unknown';
+    let childName = image.child?.firstName ?? "Unknown";
     let age = 0;
     try {
       if (image.description) {
-        const parsed = JSON.parse(image.description) as { childName?: string; age?: number };
+        const parsed = JSON.parse(image.description) as {
+          childName?: string;
+          age?: number;
+        };
         childName = parsed.childName ?? childName;
         age = Number(parsed.age ?? 0);
       }
@@ -46,8 +86,12 @@ export function ChildProfilePage() {
       imageUrl: image.url,
       childName,
       age,
-      date: new Date(image.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      rotation: (Math.random() * 6) - 3,
+      date: new Date(image.createdAt).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }),
+      rotation: Math.random() * 6 - 3,
       isFavorite: Boolean((image as any).isFavorite),
       createdAt: image.createdAt,
     };
@@ -62,14 +106,19 @@ export function ChildProfilePage() {
         const children = await getChildren();
         const found = children.find((c) => c.id === childId);
         if (!found) {
-          toast.error('Enfant introuvable');
+          toast.error("Enfant introuvable");
           setChildData(null);
           setChildDrawings([]);
           setLoading(false);
           return;
         }
         if (!mounted) return;
-        setChildData({ id: found.id, name: found.firstName, birthdate: found.birthDate ?? null, avatarColor: found.color ?? 'var(--bubblegum-pink)' });
+        setChildData({
+          id: found.id,
+          name: found.firstName,
+          birthdate: found.birthDate ?? null,
+          avatarColor: found.color ?? "var(--bubblegum-pink)",
+        });
 
         const images = await getImages();
         if (!mounted) return;
@@ -79,34 +128,53 @@ export function ChildProfilePage() {
           if (img.description) {
             try {
               const parsed = JSON.parse(img.description) as any;
-              if (parsed?.childId && String(parsed.childId) === String(childId)) return true;
-              if (parsed?.childName && parsed.childName === found.firstName) return true;
+              if (parsed?.childId && String(parsed.childId) === String(childId))
+                return true;
+              if (parsed?.childName && parsed.childName === found.firstName)
+                return true;
             } catch {
               // ignore non-json descriptions
-              if (typeof img.description === 'string' && img.description.includes(found.firstName)) return true;
+              if (
+                typeof img.description === "string" &&
+                img.description.includes(found.firstName)
+              )
+                return true;
             }
           }
           return false;
         });
         setChildDrawings(filtered.map(mapApiImageToDrawing));
       } catch (err: any) {
-        console.error('Failed to load child profile', err);
-        toast.error(err?.message ?? 'Impossible de charger le profil');
+        console.error("Failed to load child profile", err);
+        toast.error(err?.message ?? "Impossible de charger le profil");
       } finally {
         if (mounted) setLoading(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [childId]);
 
   const stats = [
-    { label: 'Total Artworks', value: childDrawings.length, icon: TrendingUp },
-    { label: 'This Month', value: childDrawings.filter(d => {
+    { label: "Total Artworks", value: childDrawings.length, icon: TrendingUp },
+    {
+      label: "This Month",
+      value: childDrawings.filter((d) => {
         const dt = new Date(d.date);
         const now = new Date();
-        return dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear();
-      }).length, icon: Calendar },
-    { label: 'Age', value: `${calculateAgeFromBirthdate(childData?.birthdate)} years`, icon: Cake },
+        return (
+          dt.getMonth() === now.getMonth() &&
+          dt.getFullYear() === now.getFullYear()
+        );
+      }).length,
+      icon: Calendar,
+    },
+    {
+      label: "Age",
+      value: `${calculateAgeFromBirthdate(childData?.birthdate)} years`,
+      icon: Cake,
+    },
   ];
 
   return (
@@ -126,24 +194,73 @@ export function ChildProfilePage() {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
             <div
               className="w-24 h-24 rounded-full flex items-center justify-center text-4xl flex-shrink-0"
-              style={{ backgroundColor: childData?.avatarColor ?? 'var(--bubblegum-pink)' }}
+              style={{
+                backgroundColor:
+                  childData?.avatarColor ?? "var(--bubblegum-pink)",
+              }}
             >
-              {(childData?.name ?? '').charAt(0) || '?'}
+              {(childData?.name ?? "").charAt(0) || "?"}
             </div>
 
             <div className="flex-1">
               <h1 className="font-[var(--font-family-heading)] text-5xl mb-2">
-                {childData ? `${childData.name}'s Gallery 🎨` : 'Loading...'}
+                {childData ? `${childData.name}'s Gallery 🎨` : "Loading..."}
               </h1>
               <p className="text-muted-foreground text-lg mb-4">
                 Celebrating creativity and imagination
               </p>
               <p className="text-sm text-muted-foreground">
-                Born {childData?.birthdate ?? 'Unknown'}
+                Born {childData?.birthdate ?? "Unknown"}
               </p>
             </div>
 
-            <button className="px-6 py-3 rounded-full bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2">
+            <button
+              className="px-6 py-3 rounded-full bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2"
+              onClick={async () => {
+                if (childDrawings.length === 0) {
+                  toast("No images to download");
+                  return;
+                }
+                try {
+                  const JSZip = (await import("jszip")).default;
+                  const zip = new JSZip();
+                  const folder =
+                    zip.folder(`${childData?.name ?? "artworks"}`) || zip;
+                  // fetch each image and add to zip
+                  await Promise.all(
+                    childDrawings.map(async (d, idx) => {
+                      try {
+                        const res = await fetch(d.imageUrl);
+                        if (!res.ok) throw new Error("HTTP " + res.status);
+                        const blob = await res.blob();
+                        const ext =
+                          (blob.type && blob.type.split("/")[1]) || "jpg";
+                        const filename = `${d.childName ?? "child"}-${idx + 1}.${ext}`;
+                        folder.file(filename, blob);
+                      } catch (err) {
+                        // ignore individual failures but log
+                        // eslint-disable-next-line no-console
+                        console.error("Failed to fetch image", d.imageUrl, err);
+                      }
+                    }),
+                  );
+
+                  const content = await zip.generateAsync({ type: "blob" });
+                  const url = URL.createObjectURL(content);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `${childData?.name ?? "artworks"}-all.zip`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  URL.revokeObjectURL(url);
+                  toast.success("Download ready");
+                } catch (err: any) {
+                  console.error(err);
+                  toast.error(err?.message ?? "Erreur lors du téléchargement");
+                }
+              }}
+            >
               <Download className="w-4 h-4" />
               <span>Download All</span>
             </button>
@@ -171,30 +288,32 @@ export function ChildProfilePage() {
 
         {/* Timeline Filter */}
         <div className="flex items-center gap-3 mb-8 overflow-x-auto pb-2">
-          {['All Time', 'This Month', 'Last 3 Months', '2026', '2025'].map((filter) => (
-            <button
-              key={filter}
-              className="px-6 py-2 rounded-full bg-white hover:bg-primary hover:text-white transition-all whitespace-nowrap border border-border hover:border-primary"
-            >
-              {filter}
-            </button>
-          ))}
+          {["All Time", "This Month", "Last 3 Months", "2026", "2025"].map(
+            (filter) => {
+              const active = filter === activeFilter;
+              return (
+                <button
+                  key={filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={`px-6 py-2 rounded-full transition-all whitespace-nowrap border ${active ? "bg-primary text-white border-primary" : "bg-white hover:bg-primary hover:text-white border-border hover:border-primary"}`}
+                >
+                  {filter}
+                </button>
+              );
+            },
+          )}
         </div>
 
- <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 750: 2, 1024: 3 }}>
-
-
-        <Masonry
-          columnsCount={3}
-          gutter="24px"
-         
+        <ResponsiveMasonry
+          columnsCountBreakPoints={{ 350: 1, 750: 2, 1024: 3 }}
         >
-          {childDrawings.map((drawing) => (
-            <div key={drawing.id} onClick={() => setSelectedDrawing(drawing)}>
-              <GalleryCard drawing={drawing} />
-            </div>
-          ))}
-        </Masonry> 
+          <Masonry columnsCount={3} gutter="24px">
+            {filteredDrawings.map((drawing) => (
+              <div key={drawing.id} onClick={() => setSelectedDrawing(drawing)}>
+                <GalleryCard drawing={drawing} />
+              </div>
+            ))}
+          </Masonry>
         </ResponsiveMasonry>
       </div>
 
@@ -204,7 +323,9 @@ export function ChildProfilePage() {
           drawing={selectedDrawing}
           onClose={() => setSelectedDrawing(null)}
           onFavoriteToggled={(id, fav) => {
-            setChildDrawings((prev) => prev.map((d) => (d.id === id ? { ...d, isFavorite: fav } : d)));
+            setChildDrawings((prev) =>
+              prev.map((d) => (d.id === id ? { ...d, isFavorite: fav } : d)),
+            );
           }}
         />
       )}

@@ -1,12 +1,13 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { X, Palette } from 'lucide-react';
-import dayjs from 'dayjs';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { toast } from 'sonner';
-import '../styles/global.css'; 
+import React, { useRef, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
+import { X, Palette } from "lucide-react";
+import dayjs from "dayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { toast } from "sonner";
+import "../styles/global.css";
 export type UploadChild = {
   id: string;
   name: string;
@@ -15,25 +16,40 @@ export type UploadChild = {
 
 interface UploadAreaProps {
   children: UploadChild[];
-  onUpload: (file: File, child: UploadChild, imageDescription?: string, createdAt?: string) => void;
+  onUpload: (
+    file: File,
+    child: UploadChild,
+    imageDescription?: string,
+    createdAt?: string,
+  ) => void;
   onCreateChild?: () => void;
   onClose: () => void;
 }
 
-export function UploadArea({ children, onUpload, onClose, onCreateChild }: UploadAreaProps) {
+export function UploadArea({
+  children,
+  onUpload,
+  onClose,
+  onCreateChild,
+}: UploadAreaProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [selectedChildId, setSelectedChildId] = useState('');
-  const [imageDescription, setImageDescription] = useState('');
-  const [createdDate, setCreatedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [selectedChildId, setSelectedChildId] = useState("");
+  const [imageDescription, setImageDescription] = useState("");
+  const [createdDate, setCreatedDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (children && children.length > 0) {
       const firstValid = children.find((c) => c.age <= 24) || children[0];
-      setSelectedChildId((prev) => (prev ? prev : firstValid ? firstValid.id : ''));
+      setSelectedChildId((prev) =>
+        prev ? prev : firstValid ? firstValid.id : "",
+      );
     }
   }, [children]);
 
@@ -41,7 +57,7 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
 
   const getMaxAllowedDateForChild = (childId: string) => {
     const child = children.find((c) => c.id === childId);
-    if (!child) return '';
+    if (!child) return "";
     const today = new Date();
     const birth = new Date(today);
     birth.setFullYear(birth.getFullYear() - child.age);
@@ -54,8 +70,8 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') setIsDragging(true);
-    if (e.type === 'dragleave') setIsDragging(false);
+    if (e.type === "dragenter" || e.type === "dragover") setIsDragging(true);
+    if (e.type === "dragleave") setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -67,8 +83,8 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
   };
 
   const handleFileSelection = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file');
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
       return;
     }
     setSelectedFile(file);
@@ -83,29 +99,42 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
 
   const handleSubmit = () => {
     if (!selectedFile || !selectedChildId) {
-      toast.error('Selectionne une image et un enfant');
+      toast.error("Selectionne une image et un enfant");
       return;
     }
 
-    const selectedChild = children.find((child) => child.id === selectedChildId);
+    const selectedChild = children.find(
+      (child) => child.id === selectedChildId,
+    );
     if (!selectedChild) {
-      toast.error('Enfant introuvable');
+      toast.error("Enfant introuvable");
       return;
     }
 
     if (selectedChild.age > 24) {
-      toast.error("L'enfant sélectionné a plus de 24 ans et ne peut pas être choisi.");
+      toast.error(
+        "L'enfant sélectionné a plus de 24 ans et ne peut pas être choisi.",
+      );
       return;
     }
 
     // convert createdDate (YYYY-MM-DD) to ISO at UTC midnight
-    const createdAtIso = createdDate ? new Date(`${createdDate}T00:00:00Z`).toISOString() : undefined;
-    onUpload(selectedFile, selectedChild, imageDescription?.trim() || undefined, createdAtIso);
+    const createdAtIso = createdDate
+      ? new Date(`${createdDate}T00:00:00Z`).toISOString()
+      : undefined;
+    onUpload(
+      selectedFile,
+      selectedChild,
+      imageDescription?.trim() || undefined,
+      createdAtIso,
+    );
     onClose();
   };
 
   // compute maxDate for the date picker based on selected child
-  const computedMaxDay = selectedChildId ? dayjs(getMaxAllowedDateForChild(selectedChildId)) : dayjs();
+  const computedMaxDay = selectedChildId
+    ? dayjs(getMaxAllowedDateForChild(selectedChildId))
+    : dayjs();
 
   return (
     <motion.div
@@ -124,8 +153,13 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="font-[var(--font-family-heading)] text-3xl">Upload Masterpiece 🎨</h2>
-          <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-muted transition-colors flex items-center justify-center">
+          <h2 className="font-[var(--font-family-heading)] text-3xl">
+            Upload Masterpiece 🎨
+          </h2>
+          <button
+            onClick={onClose}
+            className="w-10 h-10 rounded-full hover:bg-muted transition-colors flex items-center justify-center"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -137,15 +171,27 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
           onDragOver={handleDrag}
           onDrop={handleDrop}
           className={`relative border-4 border-dashed rounded-3xl p-12 mb-6 transition-all cursor-pointer ${
-            isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+            isDragging
+              ? "border-primary bg-primary/5"
+              : "border-border hover:border-primary/50"
           }`}
           onClick={() => fileInputRef.current?.click()}
         >
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileInput} className="hidden" />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileInput}
+            className="hidden"
+          />
 
           {previewUrl ? (
             <div className="space-y-4">
-              <img src={previewUrl} alt="Preview" className="w-full max-h-64 object-contain rounded-2xl" />
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className="w-full max-h-64 object-contain rounded-2xl"
+              />
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -163,8 +209,12 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
                 <Palette className="w-8 h-8 text-primary" />
               </div>
               <div>
-                <p className="font-[var(--font-family-heading)] text-xl mb-2">Drop your little one's art here 🎨</p>
-                <p className="text-muted-foreground text-sm">or click to browse files</p>
+                <p className="font-[var(--font-family-heading)] text-xl mb-2">
+                  Drop your little one's art here 🎨
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  or click to browse files
+                </p>
               </div>
             </div>
           )}
@@ -178,136 +228,134 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
               value={selectedChildId}
               onChange={(e) => {
                 const val = e.target.value;
-                if (val === '__create__') {
-                  onCreateChild?.();
-                  setSelectedChildId('');
+                if (val === "__create__") {
+                  // redirect user to children management page
+                  navigate("/children");
                   return;
                 }
                 setSelectedChildId(val);
               }}
               className="w-full px-4 py-3 rounded-2xl bg-input-background border border-border focus:border-primary focus:outline-none transition-colors"
             >
-              <option value="">Choisir un enfant</option>
-              <option value="__create__">+ Créer un enfant...</option>
+              <option value="__create__">Create New Child</option>
               {children.map((child) => (
-                <option key={child.id} value={child.id} disabled={child.age > 24}>
-                  {child.name} ({child.age} ans){child.age > 24 ? ' — >24 ans' : ''}
+                <option
+                  key={child.id}
+                  value={child.id}
+                  disabled={child.age > 24}
+                >
+                  {child.name} ({child.age} ans)
+                  {child.age > 24 ? " — >24 ans" : ""}
                 </option>
               ))}
             </select>
           </div>
 
-          <div>
-            <label className="block mb-2 text-sm">Date de création (optionnel)</label>
+          <div className="w-full">
+            <label className="block mb-2 text-sm">
+              Date of creation (optional)
+            </label>
             <div className="flex items-center gap-2">
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DatePicker
                   value={dayjs(createdDate)}
                   onChange={(newValue) => {
                     if (!newValue) return;
-                    const val = (newValue as any).format('YYYY-MM-DD');
+                    const val = (newValue as any).format("YYYY-MM-DD");
                     if (selectedChildId) {
                       const max = getMaxAllowedDateForChild(selectedChildId);
                       if (max && val > max) {
-                        toast.error("Date is not valid. Please choose an earlier date.");
+                        toast.error(
+                          "Date is not valid. Please choose an earlier date.",
+                        );
                         return;
                       }
                     }
                     setCreatedDate(val);
                   }}
-  //                 slotProps={{
-  //   day: {
-  //     sx: {
-  //       '&.Mui-selected': {
-  //         backgroundColor: '#FFB7C5 !important',
-  //         color: '#3D3250 !important',
-  //       },
-  //       '&.Mui-selected:hover': {
-  //         backgroundColor: '#C9B8F0 !important',
-  //       },
-  //       '&.Mui-selected:focus': {
-  //         backgroundColor: '#FFB7C5 !important',
-  //       },
-  //     },
-  //   },
-  // }}
-  slotProps={{
-    yearButton: {
-      sx: {
-        fontFamily: 'Nunito, sans-serif !important',
-        fontSize: '12px !important',
-        '&.Mui-selected': {
-          backgroundColor: '#FFB7C5 !important',
-          color: '#3D3250 !important',
-          fontFamily: 'Nunito, sans-serif !important',
-        },
-        '&.Mui-selected:hover': {
-          backgroundColor: '#C9B8F0 !important',
-        },
-        '&.Mui-selected:focus': {
-          backgroundColor: '#FFB7C5 !important',
-        },
-      },
-    },
-    textField: {
-      sx: {
-        // Conteneur des sections JJ/MM/AAAA
-        '& .MuiPickersOutlinedInput-sectionsContainer': {
-          fontFamily: 'Nunito, sans-serif !important',
-        },
-        // Les sections individuelles (JJ, MM, AAAA)
-        '& .MuiPickersSectionList-section': {
-          fontFamily: 'Nunito, sans-serif !important',
-        },
-        // Le contenu texte dans chaque section
-        '& .MuiPickersSectionList-sectionContent': {
-          fontFamily: 'Nunito, sans-serif !important',
-        },
-      },
-    },
-    day: {
-      sx: {
-        fontFamily: 'Nunito, sans-serif !important',
-        '&.Mui-selected': {
-          backgroundColor: '#FFB7C5 !important',
-          color: '#3D3250 !important',
-          fontFamily: 'Nunito, sans-serif !important',
-        },
-        '&.Mui-selected:hover': {
-          backgroundColor: '#C9B8F0 !important',
-        },
-        '&.Mui-selected:focus': {
-          backgroundColor: '#FFB7C5 !important',
-        },
+                  slotProps={{
+                    yearButton: {
+                      sx: {
+                        fontFamily: "Nunito, sans-serif !important",
+                        fontSize: "12px !important",
+                        "&.Mui-selected": {
+                          backgroundColor: "#FFB7C5 !important",
+                          color: "#3D3250 !important",
+                          fontFamily: "Nunito, sans-serif !important",
+                        },
+                        "&.Mui-selected:hover": {
+                          backgroundColor: "#C9B8F0 !important",
+                        },
+                        "&.Mui-selected:focus": {
+                          backgroundColor: "#FFB7C5 !important",
+                        },
+                      },
+                    },
+                    textField: {
+                      sx: {
+                        "& .MuiPickersOutlinedInput-sectionsContainer": {
+                          fontFamily: "Nunito, sans-serif !important",
+                        },
+                        "& .MuiPickersSectionList-section": {
+                          fontFamily: "Nunito, sans-serif !important",
+                        },
+                        "& .MuiPickersSectionList-sectionContent": {
+                          fontFamily: "Nunito, sans-serif !important",
+                        },
+                      },
+                    },
+                    day: {
+                      sx: {
+                        fontFamily: "Nunito, sans-serif !important",
+                        "&.Mui-selected": {
+                          backgroundColor: "#FFB7C5 !important",
+                          color: "#3D3250 !important",
+                          fontFamily: "Nunito, sans-serif !important",
+                        },
+                        "&.Mui-selected:hover": {
+                          backgroundColor: "#C9B8F0 !important",
+                        },
+                        "&.Mui-selected:focus": {
+                          backgroundColor: "#FFB7C5 !important",
+                        },
 
-        // Aujourd'hui (non sélectionné)
-        '&.MuiPickersDay-today:not(.Mui-selected)': {
-          border: '1.5px solid #FFB7C5 !important',
-          color: '#3D3250 !important',
-        },
-      },
-    },
-  }}
-                  maxDate={computedMaxDay && computedMaxDay.isValid() ? computedMaxDay : dayjs()}
+                        "&.MuiPickersDay-today:not(.Mui-selected)": {
+                          border: "1.5px solid #FFB7C5 !important",
+                          color: "#3D3250 !important",
+                        },
+                      },
+                    },
+                  }}
+                  maxDate={
+                    computedMaxDay && computedMaxDay.isValid()
+                      ? computedMaxDay
+                      : dayjs()
+                  }
                 />
               </LocalizationProvider>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Si laissé vide, la date du jour sera utilisée.</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              If date is not specified, the current date will be used.
+            </p>
           </div>
 
           <div>
-            <label className="block mb-2 text-sm">Description de l'image (optionnel)</label>
+            <label className="block mb-2 text-sm">
+              Description of the artwork (optional)
+            </label>
             <textarea
               value={imageDescription}
               onChange={(e) => setImageDescription(e.target.value)}
-              placeholder="Par ex. 'Dessin du chien au parc'"
+              placeholder="For example, 'Drawing of the dog at the park'"
               className="w-full px-4 py-3 rounded-2xl bg-input-background border border-border focus:border-primary focus:outline-none transition-colors h-24"
             />
-            <p className="text-xs text-muted-foreground mt-2">Cette description sera enregistrée avec l'image et peut aider à la recherche.</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              This description will be saved with the image and can help with
+              searchability.
+            </p>
           </div>
         </div>
 
- 
         <button
           onClick={handleSubmit}
           disabled={!selectedFile || !selectedChildId || children.length === 0}
@@ -316,7 +364,9 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
           Upload Masterpiece ✨
         </button>
         {children.length === 0 && (
-          <p className="text-sm text-muted-foreground mt-3">Ajoute d'abord un enfant dans "My Children" pour publier un dessin.</p>
+          <p className="text-sm text-muted-foreground mt-3">
+            Ajoute d'abord un enfant dans "My Children" pour publier un dessin.
+          </p>
         )}
       </motion.div>
     </motion.div>
