@@ -6,7 +6,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { toast } from 'sonner';
-
+import '../styles/global.css'; 
 export type UploadChild = {
   id: string;
   name: string;
@@ -215,16 +215,79 @@ export function UploadArea({ children, onUpload, onClose, onCreateChild }: Uploa
                     }
                     setCreatedDate(val);
                   }}
-                  // apply classes to the native input via slotProps — return only desired props to avoid forwarding internal MUI props
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      inputProps: {
-                        className:
-                          'file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base bg-input-background transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
-                      },
-                    },
-                  } as any}
+  //                 slotProps={{
+  //   day: {
+  //     sx: {
+  //       '&.Mui-selected': {
+  //         backgroundColor: '#FFB7C5 !important',
+  //         color: '#3D3250 !important',
+  //       },
+  //       '&.Mui-selected:hover': {
+  //         backgroundColor: '#C9B8F0 !important',
+  //       },
+  //       '&.Mui-selected:focus': {
+  //         backgroundColor: '#FFB7C5 !important',
+  //       },
+  //     },
+  //   },
+  // }}
+  slotProps={{
+    yearButton: {
+      sx: {
+        fontFamily: 'Nunito, sans-serif !important',
+        fontSize: '12px !important',
+        '&.Mui-selected': {
+          backgroundColor: '#FFB7C5 !important',
+          color: '#3D3250 !important',
+          fontFamily: 'Nunito, sans-serif !important',
+        },
+        '&.Mui-selected:hover': {
+          backgroundColor: '#C9B8F0 !important',
+        },
+        '&.Mui-selected:focus': {
+          backgroundColor: '#FFB7C5 !important',
+        },
+      },
+    },
+    textField: {
+      sx: {
+        // Conteneur des sections JJ/MM/AAAA
+        '& .MuiPickersOutlinedInput-sectionsContainer': {
+          fontFamily: 'Nunito, sans-serif !important',
+        },
+        // Les sections individuelles (JJ, MM, AAAA)
+        '& .MuiPickersSectionList-section': {
+          fontFamily: 'Nunito, sans-serif !important',
+        },
+        // Le contenu texte dans chaque section
+        '& .MuiPickersSectionList-sectionContent': {
+          fontFamily: 'Nunito, sans-serif !important',
+        },
+      },
+    },
+    day: {
+      sx: {
+        fontFamily: 'Nunito, sans-serif !important',
+        '&.Mui-selected': {
+          backgroundColor: '#FFB7C5 !important',
+          color: '#3D3250 !important',
+          fontFamily: 'Nunito, sans-serif !important',
+        },
+        '&.Mui-selected:hover': {
+          backgroundColor: '#C9B8F0 !important',
+        },
+        '&.Mui-selected:focus': {
+          backgroundColor: '#FFB7C5 !important',
+        },
+
+        // Aujourd'hui (non sélectionné)
+        '&.MuiPickersDay-today:not(.Mui-selected)': {
+          border: '1.5px solid #FFB7C5 !important',
+          color: '#3D3250 !important',
+        },
+      },
+    },
+  }}
                   maxDate={computedMaxDay && computedMaxDay.isValid() ? computedMaxDay : dayjs()}
                 />
               </LocalizationProvider>

@@ -1,0 +1,200 @@
+/* =============================================================
+   MUI DatePicker — overrides globaux
+   Toujours utiliser les classes stables .MuiXxx, jamais .css-xxx
+   ============================================================= */
+
+/* ── 1. FormControl wrapper (width, layout) ─────────────────── */
+.MuiPickersTextField-root {
+  width: 100%;
+  max-width: 100%;
+}
+.MuiPickersSectionList-root-MuiPickersInputBase-sectionsContainer-MuiPickersOutlinedInput-sectionsContainer {   font-family: 'Nunito', sans-serif !important;}
+/* ── 2. Input root (bordure, couleurs, font) ────────────────── */
+.MuiPickersOutlinedInput-root {
+  font-family: 'Nunito', sans-serif !important;
+  font-size: 0.875rem !important;
+  font-weight: 600;
+  color: #3D3250 !important;
+  background-color: rgba(255, 255, 255, 0.75);
+  border-radius: 12px !important;
+  padding: 0 12px !important;
+  height: 40px;
+  border: 1.5px solid #C9B8F0;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.MuiPickersOutlinedInput-root:hover {
+  border-color: #FFB7C5;
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.MuiPickersOutlinedInput-root.Mui-focused {
+  border-color: #C9B8F0;
+  box-shadow: 0 0 0 3px rgba(201, 184, 240, 0.3);
+}
+
+/* Supprime le fieldset natif MUI (sa propre bordure) */
+.MuiPickersOutlinedInput-root .MuiOutlinedInput-notchedOutline,
+.MuiPickersOutlinedInput-root fieldset {
+  border: none !important;
+}
+
+/* ── 3. Sections container (le texte JJ/MM/AAAA) ────────────── */
+.MuiPickersOutlinedInput-sectionsContainer {
+  font-family: 'Nunito', sans-serif !important;
+  font-size: 0.875rem !important;
+  padding: 0 !important;
+  color: #3D3250;
+  width: auto !important; /* retire le width: 182px fixe */
+  flex-grow: 1;
+}
+
+/* Section active (quand on clique sur JJ, MM ou AAAA) */
+.MuiPickersSectionList-sectionContent[aria-selected="true"] {
+  background-color: rgba(201, 184, 240, 0.35);
+  border-radius: 4px;
+  color: #3D3250;
+}
+
+/* ── 4. Bouton icône calendrier ─────────────────────────────── */
+.MuiPickersOutlinedInput-root .MuiIconButton-root {
+  color: #C9B8F0 !important;
+  padding: 6px !important;
+  border-radius: 8px !important;
+  margin-right: -6px;
+  transition: background-color .2s ease, color .2s ease;
+}
+
+.MuiPickersOutlinedInput-root .MuiIconButton-root:hover {
+  background-color: rgba(201, 184, 240, 0.2) !important;
+  color: #FFB7C5 !important;
+}
+
+/* Masque l'icône SVG native MUI */
+.MuiPickersOutlinedInput-root .MuiIconButton-root svg {
+  display: none;
+}
+
+/* Remplace par une icône emoji/unicode via ::before */
+.MuiPickersOutlinedInput-root .MuiIconButton-root::before {
+  /* remplace l'emoji par un SVG (calendar) encodé en data-uri — rendu Lucide-style */
+  content: '';
+  display: inline-block;
+  width: 1.1rem;
+  height: 1.1rem;
+  line-height: 1;
+  vertical-align: middle;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='%23C9B8F0' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2' ry='2'/><path d='M16 2v4M8 2v4M3 10h18'/></svg>");
+}
+
+.MuiPickersOutlinedInput-root .MuiIconButton-root:hover::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='%23FFB7C5' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2' ry='2'/><path d='M16 2v4M8 2v4M3 10h18'/></svg>");
+}
+
+/* ── 5. Popup calendrier (rendu dans un Portal) ─────────────── */
+.MuiPickersPopper-root .MuiPaper-root {
+  font-family: 'Nunito', sans-serif !important;
+  border-radius: 20px !important;
+  border: 1.5px solid #C9B8F0;
+  box-shadow: 0 12px 40px rgba(180, 150, 220, 0.2) !important;
+  overflow: hidden;
+}
+
+/* Header mois / année */
+.MuiPickersCalendarHeader-label {
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 800 !important;
+  color: #3D3250 !important;
+  font-size: 0.95rem !important;
+}
+
+/* Flèches navigation */
+.MuiPickersArrowSwitcher-button {
+  color: #C9B8F0 !important;
+}
+.MuiPickersArrowSwitcher-button:hover {
+  background-color: rgba(201, 184, 240, 0.15) !important;
+}
+
+/* Noms des jours (Lun, Mar…) */
+.MuiDayCalendar-weekDayLabel {
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 700 !important;
+  color: #8B7FA8 !important;
+  font-size: 0.75rem !important;
+}
+
+/* Cases jours */
+.MuiPickersDay-root {
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  transition: background-color .15s ease !important;
+}
+
+.MuiPickersDay-root:hover {
+  background-color: rgba(255, 183, 197, 0.25) !important;
+}
+
+/* Jour sélectionné */
+.MuiPickersDay-root.Mui-selected {
+  background-color: #FFB7C5 !important;
+  color: #3D3250 !important;
+  font-weight: 800 !important;
+}
+.MuiPickersDay-root.Mui-selected:hover {
+  background-color: #C9B8F0 !important;
+}
+
+/* Aujourd'hui (non sélectionné) */
+.MuiPickersDay-today:not(.Mui-selected) {
+  border: 1.5px solid #C9B8F0 !important;
+  color: #3D3250 !important;
+}
+
+
+/* Jour sélectionné — écrase le bleu MUI */
+.MuiPickersDay-root.Mui-selected {
+  background-color: #FFB7C5 !important;
+  color: #3D3250 !important;
+}
+
+.MuiPickersDay-root.Mui-selected:hover {
+  background-color: #C9B8F0 !important;
+}
+
+/* Aujourd'hui + sélectionné */
+.MuiPickersDay-root.Mui-selected.MuiPickersDay-today {
+  background-color: #FFB7C5 !important;
+}
+
+.MuiPickersDay-root.MuiPickersDay-root.Mui-selected {
+  background-color: #FFB7C5 !important;
+  color: #3D3250 !important;
+}
+
+
+.MuiPickersCalendarHeader-switchViewButton .MuiPickersCalendarHeader-switchViewIcon {
+  display: none;
+}
+
+/* Remplace par un emoji */
+.MuiPickersCalendarHeader-switchViewButton::before {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  /* couleur par défaut (même que précédemment) */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='%23C9B8F0' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+}
+
+.MuiPickersCalendarHeader-switchViewButton:hover::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='%23FFB7C5' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+}
