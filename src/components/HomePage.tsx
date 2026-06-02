@@ -1,9 +1,10 @@
 import { HeroSection } from "./HeroSection";
 import { Gallery } from "./Gallery";
+import { FloatingActionButton } from "./FloatingActionButton";
 import { UploadArea, type UploadChild } from "./UploadArea";
 import { ArtworkDetailModal } from "./ArtworkDetailModal";
 import type { Drawing } from "./types";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface HomePageProps {
   drawings: Drawing[];
@@ -27,12 +28,6 @@ export function HomePage({
 }: HomePageProps) {
   const [showUpload, setShowUpload] = useState(false);
   const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
-
-  useEffect(() => {
-    const handler = () => setShowUpload(true);
-    window.addEventListener("upload:open", handler);
-    return () => window.removeEventListener("upload:open", handler);
-  }, []);
 
   return (
     <>
@@ -61,7 +56,9 @@ export function HomePage({
       >
         <Gallery drawings={drawings} />
       </div>
-      {/* FloatingActionButton is rendered globally in App.tsx */}
+      {canUpload && (
+        <FloatingActionButton onClick={() => setShowUpload(true)} />
+      )}
 
       {canUpload && showUpload && (
         <UploadArea
@@ -70,8 +67,8 @@ export function HomePage({
           onClose={() => setShowUpload(false)}
           onCreateChild={() => {
             setShowUpload(false);
-            // navigate to children management page
-            window.location.href = "/children";
+            // navigate to My Children page — simple approach using location
+            window.location.href = "/my-children";
           }}
         />
       )}

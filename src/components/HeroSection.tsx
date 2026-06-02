@@ -12,7 +12,6 @@ export function HeroSection({
 }: HeroSectionProps) {
   return (
     <section className="relative min-h-screen overflow-hidden">
-      {/* Background image */}
       <img
         src={banner}
         alt="Children artwork gallery"
@@ -22,7 +21,7 @@ export function HeroSection({
       {/* Overlay */}
       <div className="absolute inset-0 " />
       {/* bg-gradient-to-b from-black/30 via-black/50 to-black/70 */}
-      {/* Decorative blur */}
+
       <div className="absolute left-1/2 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-pink-400/30 blur-3xl" />
 
       {/* Content */}

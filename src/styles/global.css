@@ -1,12 +1,3 @@
-
-
-
-.plusBtn {
-  color: red;
-  stroke: green;
-  outline-color: green;
-}
-
 /* =============================================================
    MUI DatePicker — overrides globaux
    Toujours utiliser les classes stables .MuiXxx, jamais .css-xxx
